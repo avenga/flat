@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – matches()</title>
+        <link rel="stylesheet" href="../../assets/highlightjs.css">
+        <link rel="stylesheet" href="../../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="matches"><code>matches()</code><a class="anchor" href="#matches"> # </a></h1>
+<pre><code class="language-idl"><span class="hljs-type">boolean</span> <span class="hljs-title function_">matches</span>(<span class="hljs-type">string</span> input, <span class="hljs-type">string</span> pattern [, <span class="hljs-type">string</span> modifiers = &quot;&quot;])
+</code></pre>
+<p>The <code>matches()</code> function returns <code>true()</code> if <code>input</code> matches the regular expression supplied as <code>pattern</code> as influenced by
+the value of <code>modifiers</code>, if present; otherwise, it returns <code>false()</code>. Supported modifiers are <code>i</code> (caseless), <code>m</code> (multiline), <code>s</code> (single line) and <code>x</code> (extended).</p>
+<p>Internally, FLAT uses <a href="https://www.pcre.org/current/doc/html/pcre2syntax.html" class="external" target="_blank"><code>libpcre</code></a>.</p>
+<h2 id="example">Example<a class="anchor" href="#example"> # </a></h2>
+<p><code>matches(&quot;FLAT&quot;, &quot;^f&quot;, &quot;i&quot;)</code> evaluates to <code>true()</code></p>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="replace.html"><code>replace()</code></a></li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../../administration/docker.html">Docker</a></li>
+<li><a href="../../administration/configuration.html">Configuration</a></li>
+<li><a href="../../administration/logging.html">Logging</a></li>
+<li><a href="../../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../../reference/actions/README.html">Actions</a></summary><ul><li><a href="../../reference/actions/auth.html">auth</a></li>
+<li><a href="../../reference/actions/copy.html">copy</a></li>
+<li><a href="../../reference/actions/debug.html">debug</a></li>
+<li><a href="../../reference/actions/dump.html">dump</a></li>
+<li><a href="../../reference/actions/echo.html">echo</a></li>
+<li><a href="../../reference/actions/error.html">error</a></li>
+<li><a href="../../reference/actions/eval.html">eval</a></li>
+<li><a href="../../reference/actions/log.html">log</a></li>
+<li><a href="../../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../../reference/actions/regex.html">regex</a></li>
+<li><a href="../../reference/actions/request.html">request</a></li>
+<li><a href="../../reference/actions/requests.html">requests</a></li>
+<li><a href="../../reference/actions/serve.html">serve</a></li>
+<li><a href="../../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../../reference/actions/template.html">template</a></li>
+<li><a href="../../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../../reference/configuration.html">Configuration</a></li>
+<li><a href="../../reference/debugging.html">Debugging</a></li>
+<li><a href="../../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../../reference/functions/README.html">Functions</a></summary><ul><li><a href="../../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../../reference/functions/array.html">array()</a></li>
+<li><a href="../../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../../reference/functions/body.html">body()</a></li>
+<li><a href="../../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../../reference/functions/content.html">content()</a></li>
+<li><a href="../../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../../reference/functions/join.html">join()</a></li>
+<li><a href="../../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../../reference/functions/matches.html">matches()</a></li>
+<li><a href="../../reference/functions/md5.html">md5()</a></li>
+<li><a href="../../reference/functions/replace.html">replace()</a></li>
+<li><a href="../../reference/functions/sort.html">sort()</a></li>
+<li><a href="../../reference/functions/split.html">split()</a></li>
+<li><a href="../../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../../reference/functions/trim.html">trim()</a></li>
+<li><a href="../../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../../reference/testing/README.html">Testing</a></li>
+<li><a href="../../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#example">Example</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../../assets/minisearch.js"></script>
+        <script src="../../assets/search-index.js"></script>
+        <script src="../../assets/script.js"></script>
+        <script>
+        const baseURI = "../../";
+        selectNavElement("../../reference/functions/matches.html")
+        </script>
+        </body>
+        </html>

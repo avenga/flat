@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Flow</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="flow">Flow<a class="anchor" href="#flow"> # </a></h1>
+<p>A <em>flow</em> describes how the incoming request from the client is transformed into the outgoing response.
+It comprises <a href="actions/README.html"><em>actions</em></a>, <a href="#control-structures">control structures</a> and <a href="variables.html">variables</a>.</p>
+<p>Each endpoint of your API can have its individual flow specified by <a href="openapi/routing.html#assigning-flat-flows"><code>x-flat-flow</code></a> in the <code>swagger.yaml</code> file.</p>
+<p>Here we have a flow with <a href="#if-elseif-else"><code>if-elseif-else</code> conditional statements</a> and some <a href="actions/echo.html"><code>echo</code> actions</a> evaluating the <a href="variables.html"><code>$request</code> variable</a>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/query = 42&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span>&gt;</span>Yeah, that&#x27;s it!<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/query&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span>&gt;</span>Um, no!<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span>&gt;</span>Do you know the answer?<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="control-structures">Control Structures<a class="anchor" href="#control-structures"> # </a></h2>
+<h3 id="break"><code>break</code><a class="anchor" href="#break"> # </a></h3>
+<p><code>break</code> stops the flow processing for the current request. It may be used in
+<a href="actions/sub-flow.html">sub flows</a> or the <a href="openapi/routing.html#init-flow">init flow</a>, too.</p>
+<p>Response processing (such as validation and sending out the response) will
+continue, though.</p>
+<p>A <code>break</code> statement should usually be executed conditionally, because otherwise
+none of the following statements will ever be executed:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">break</span>/&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">echo</span>&gt;</span>will never be reached<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>See also:</p>
+<ul>
+<li><a href="actions/echo.html"><code>echo</code></a></li>
+<li><a href="actions/dump.html"><code>dump</code></a></li>
+<li><a href="#return"><code>return</code></a></li>
+<li><a href="actions/sub-flow.html"><code>sub-flow</code></a></li>
+</ul>
+<h3 id="if-elseif-else"><code>if</code>-<code>elseif</code>-<code>else</code><a class="anchor" href="#if-elseif-else"> # </a></h3>
+<p>The <code>if</code> statement and the optional <code>elseif</code> and <code>else</code> statements allow for conditional execution of flow blocks.</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;…&quot;</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Conditional expressions are defined in the <code>test=&quot;…&quot;</code> attributes of the <code>if</code> and <code>elseif</code> statements.
+If such an expression evaluates to <code>true()</code>, the flow block inside that <code>if</code> (or <code>elseif</code>) will be executed. All directly following <code>elseif</code> and <code>else</code> blocks will then be skipped.</p>
+<p>If the result of that expression is <code>false()</code>, the block will be skipped and the condition of the following <code>elseif</code> statement will be checked, if applicable.</p>
+<p>The block associated with the first matching conditional expression will be executed – or if all  expressions were evaluated to <code>false()</code>, the <code>else</code> block will be executed.</p>
+<h3 id="if-attribute"><code>if</code> attribute<a class="anchor" href="#if-attribute"> # </a></h3>
+<p>The <code>if</code> attribute allows for conditional execution of a single action:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  …
+  <span class="hljs-tag">&lt;<span class="hljs-name">error</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;$upstream/my_request/status != 200&quot;</span>&gt;</span>
+  {
+    …
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">error</span>&gt;</span>
+  …
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h3 id="return"><code>return</code><a class="anchor" href="#return"> # </a></h3>
+<p><code>return</code> quits the current <a href="actions/sub-flow.html">sub flow</a> and returns to its parent flow.
+If <code>return</code> is used in the <a href="openapi/routing.html#init-flow">init flow</a> the regular API path flow will still be executed.
+A <code>return</code> statement on the top-most flow behaves like <a href="#break"><code>break</code></a>.</p>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#control-structures">Control Structures</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../reference/flow.html")
+        </script>
+        </body>
+        </html>

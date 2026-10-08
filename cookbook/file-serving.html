@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – File Serving</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="file-serving">File Serving<a class="anchor" href="#file-serving"> # </a></h1>
+<p>Sometimes you want to serve local files, e.g. HTML, JavaScript, or CSS. This is a task for the <a href="../reference/openapi/routing.html#default-flow">default flow</a> defined in <code>conf/flow.xml</code> and the <a href="../reference/actions/serve.html"><code>serve</code> action</a>.</p>
+<p>📎 <strong>Note:</strong>
+In the following we assume that the <code>basePath</code> in <code>swagger.yaml</code> is <em>not</em> <code>/</code> so that
+the default flow will actually be effective.</p>
+<p>First, we create <code>flow.xml</code> in <code>conf</code> with the following content:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">serve</span> <span class="hljs-attr">dir</span>=<span class="hljs-string">&quot;../htdocs&quot;</span> <span class="hljs-attr">fallback-doc</span>=<span class="hljs-string">&quot;/index.html&quot;</span>/&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>This assumes that the local files should be found in an <code>htdocs</code> directory next to <code>conf</code> (<code>dir=&quot;../htdocs&quot;</code>) and that there is an <code>index.html</code> fallback document in the <code>htdocs</code> directory.</p>
+<p>So, let’s create <code>htdocs/index.html</code></p>
+<pre><code class="language-html"><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-keyword">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">&quot;utf-8&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>Fallback page<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;stylesheet&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;/styles.css&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;/script.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Fallback page<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</code></pre>
+<p>and some assets:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;body { background-color: red }&#x27;</span> &gt; htdocs/styles.css
+$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;document.write(&quot;Hello!&quot;)&#x27;</span>       &gt; htdocs/script.js
+</code></pre>
+<p>Finally, we create another HTML document in a different directory:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">mkdir</span> -p htdocs/some/where
+
+$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;&lt;html&gt;&lt;body&gt;&lt;h1&gt;Somewhere&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;&#x27;</span> &gt; htdocs/some/where/index.html
+</code></pre>
+<p>Let’s go surfin’ now:</p>
+<pre><code class="language-bash">$ curl -si localhost:8080
+HTTP/1.1 200 OK
+Server: FLAT
+Content-Type: text/html
+…
+
+    &lt;h1&gt;Fallback page&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+$ curl -si localhost:8080/styles.css
+HTTP/1.1 200 OK
+…
+Content-Type: text/css
+
+body { background-color: red }
+</code></pre>
+<p>Note the redirection when we request <code>/some/where</code> without the trailing <code>/</code>:</p>
+<pre><code class="language-bash">$ curl -si --location localhost:8080/some/where
+HTTP/1.1 301 Moved Permanently
+Server: FLAT
+Location: /some/where/
+Content-Type: text/html
+…
+
+HTTP/1.1 200 OK
+…
+&lt;html&gt;&lt;body&gt;&lt;h1&gt;Somewhere&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;
+</code></pre>
+<p>FLAT responds with <code>index.html</code> just like a web server would do.</p>
+<p>📎 <strong>Note:</strong>
+Requests to missing resources always return the fallback document.
+Therefore, any resources therein must be absolutely referenced.</p>
+<pre><code class="language-bash">$ curl -si localhost:8080/not/existing/
+HTTP/1.1 200 OK
+Server: FLAT
+Content-Type: text/html
+…
+
+    &lt;h1&gt;Fallback page&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/file-serving.html")
+        </script>
+        </body>
+        </html>

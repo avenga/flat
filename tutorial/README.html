@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Tutorial</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="tutorial">Tutorial<a class="anchor" href="#tutorial"> # </a></h1>
+<blockquote>
+<p>⚠️
+Parts of this tutorial cover an older FLAT release and are outdated.</p>
+</blockquote>
+<p><em>Hello World!</em></p>
+<p>So you’re new on your job and your boss wants you to create an API for accessing programming language code snippets.</p>
+<p>The design and frontend teams are already working on the user interface and can’t wait to access the API you’re about to create.</p>
+<p>There you go! This tutorial helps you create a REST API for “Hello World” code snippets based on
+<a href="../README.html">FLAT</a>.</p>
+<h2 id="tools">Tools<a class="anchor" href="#tools"> # </a></h2>
+<p>FLAT is supplied as a <a href="../administration/docker.html">Docker</a> image, so please make sure you have Docker installed on your system.</p>
+<p>We assume you have the <code>curl</code> command line tool installed, too, which comes in handy when
+working with REST APIs. The <a href="https://stedolan.github.io/jq/" class="external" target="_blank"><code>jq</code> JSON processor</a>
+is a useful tool when working with JSON.</p>
+<h2 id="getting-started">Getting Started<a class="anchor" href="#getting-started"> # </a></h2>
+<p>Let’s create a workspace for our little project. We call it <code>hello-world</code> and create a directory with that name:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">mkdir</span> ~/hello-world
+</code></pre>
+<p>Next, we create a simple <code>docker-compose.yaml</code> configuration inside <code>hello-world</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">services:</span>
+  <span class="hljs-attr">flat:</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">code-registry.avenga.cloud/product/flat/flat/flatrunner</span>
+    <span class="hljs-attr">ports:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;8080:8080&quot;</span>
+    <span class="hljs-attr">volumes:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">.:/app</span>
+</code></pre>
+<p>Now we can start FLAT like this</p>
+<pre><code class="language-bash">$ docker compose --file ~/hello-world/docker-compose.yaml up
+</code></pre>
+<p>or from within our working directory:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">cd</span> ~/hello-world
+$ docker compose up
+</code></pre>
+<blockquote>
+<p>📎
+If you haven’t already guessed: You can stop FLAT at any time as usual by pressing
+<kbd>Ctrl</kbd> + <kbd>C</kbd> in its terminal.</p>
+</blockquote>
+<p>Point your web browser to <a href="http://localhost:8080/" class="external" target="_blank">http://localhost:8080/</a> and see FLAT in action:</p>
+<p><img src="images/error.png" alt="FLAT error"></p>
+<p>Or use <code>curl</code> on the command line in a new terminal:</p>
+<pre><code class="language-bash">$ curl localhost:8080
+XNlS3M0L3o-5iHrwuGgNJQAAAI0: Error! Cannot access OpenAPI definition file at fit://site/swagger.yaml
+</code></pre>
+<h2 id="openapi">OpenAPI<a class="anchor" href="#openapi"> # </a></h2>
+<p>Looks like there’s some kind of configuration missing here.
+Currently, FLAT supports OpenAPI 2.0 also known as Swagger.
+Let’s start with a minimal <a href="https://swagger.io/docs/specification/v2_0/basic-structure/" class="external" target="_blank">OpenAPI definition</a> in a <code>swagger.yaml</code> file:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">info:</span>
+  <span class="hljs-attr">version:</span> <span class="hljs-string">&quot;1.0&quot;</span>
+  <span class="hljs-attr">title:</span> <span class="hljs-string">Hello</span> <span class="hljs-string">World!</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/:</span>
+</code></pre>
+<blockquote>
+<p>📎
+OpenAPI definitions can be written in YAML or JSON.
+We recommend YAML for brevity and readability.</p>
+</blockquote>
+<p>Now we get a different error message:</p>
+<pre><code class="language-bash">$ curl localhost:8080
+{<span class="hljs-string">&quot;error&quot;</span>:{<span class="hljs-string">&quot;message&quot;</span>:<span class="hljs-string">&quot;No flow or proxy found for GET \/&quot;</span>,<span class="hljs-string">&quot;status&quot;</span>:500, …}}
+</code></pre>
+<p>We’ll get rid of it in the next section.</p>
+<h2 id="in-the-flow">In the Flow<a class="anchor" href="#in-the-flow"> # </a></h2>
+<p>The <a href="../reference/flow.html"><em>flow</em></a> feature of FLAT gives us full control over request and response processing.
+Let’s create a simple flow definition in <code>hello.xml</code> with an
+<a href="../reference/actions/echo.html"><code>echo</code> <em>action</em></a> that produces a JSON snippet:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span>&gt;</span>{&quot;Hello&quot;:&quot;World&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Then we assign that flow to the path <code>/</code> in our <code>swagger.yaml</code>.
+With <code>x-flat-flow</code> we tell FLAT to start the <code>hello.xml</code> flow whenever <code>/</code> is being requested:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/:</span>
+    <span class="hljs-attr">get:</span>                     <span class="hljs-comment"># ⬅</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">hello.xml</span> <span class="hljs-comment"># ⬅</span>
+</code></pre>
+<blockquote>
+<p>📎
+File paths are resolved relative to the location of the file they are referenced in. For <code>swagger.yaml</code> and <code>hello.xml</code> are in the same directory, we can simply use the filename here.</p>
+</blockquote>
+<p>There we have our first “Hello World” snippet in JSON format:</p>
+<pre><code class="language-bash">$ curl --include localhost:8080
+HTTP/1.1 200 OK
+Date: Mon, 13 May 2019 11:48:35 GMT
+Server: FLAT
+Content-Length: 17
+Content-Type: application/json
+
+{<span class="hljs-string">&quot;Hello&quot;</span>:<span class="hljs-string">&quot;World&quot;</span>}
+</code></pre>
+<p>Okay, let’s parametrize our requests and add a second language for “Hello World” snippets: CSS.
+First, we add a <em>path parameter</em> for the <code>language</code> to the OpenAPI definition. That is,
+the user has to provide the desired language in the request URI:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/{language}:</span> <span class="hljs-comment"># ⬅</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">hello.xml</span>
+</code></pre>
+<p>Then in our <code>hello.xml</code> we evaluate that path parameter to return the appropriate code snippet.
+In the flow, path parameters can be accessed via <code>$request/params/…</code>. With the
+<a href="../reference/flow.html#if-elseif-else"><code>&lt;if&gt;</code>/<code>&lt;elseif&gt;</code>/<code>&lt;else&gt;</code> control structure</a> we check the value of
+<code>$request/params/language</code> and <code>echo</code> the respective snippet as JSON:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/params/language = &#x27;json&#x27;&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span>&gt;</span>{&quot;code&quot;: &quot;{\&quot;Hello\&quot;:\&quot;World\&quot;}&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/params/language = &#x27;css&#x27;&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span>&gt;</span>{&quot;code&quot;: &quot;body:before {content: &#x27;Hello World&#x27;}&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span> <span class="hljs-attr">status</span>=<span class="hljs-string">&quot;404&quot;</span>&gt;</span>{&quot;code&quot;: &quot;???&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p><img src="images/hello-css.png" alt="&quot;Hello World&quot; in CSS"></p>
+<p>Did you notice how we change the HTTP status code to 404 when the requested
+language is unsupported?</p>
+<pre><code class="language-bash">$ curl --include localhost:8080/foo
+HTTP/1.1 404 Not Found
+…
+{<span class="hljs-string">&quot;code&quot;</span>: <span class="hljs-string">&quot;???&quot;</span>}
+</code></pre>
+<blockquote>
+<p>📝
+<strong>Exercise:</strong> Enhance the above flow so that it can output a JavaScript code snippet as well.</p>
+<details><summary>💡 Hint…</summary>
+<pre><code class="language-xml"> …
+ <span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-name">elseif</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/params/language = &#x27;javascript&#x27;&quot;</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span>&gt;</span>{&quot;code&quot;: &quot;console.log(&#x27;Hello World&#x27;)&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-name">elseif</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+ …
+</code></pre>
+</details>
+</blockquote>
+<h2 id="working-with-files">Working with Files<a class="anchor" href="#working-with-files"> # </a></h2>
+<p>Now we could add another language to our “Hello World” collection. And yet another, and…
+– Wait! Someone must have done this before, right?</p>
+<p>Right! “Hello World” code snippets for many computer languages can of course be found on <a href="https://github.com/leachim6/hello-world" class="external" target="_blank">GitHub</a>. The frontend developer team agrees that it would suffice if our API simply provides the URLs pointing to the code snippets rather than the snippets itself, for example</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;https://raw.githubusercontent.com/leachim6/hello-world/HEAD/c/css.css&quot;</span><span class="hljs-punctuation">}</span>
+</code></pre>
+<p>To give the other team something to base their work on, we’ll quickly set up some
+mock responses. To keep our flow readable and <a href="https://en.wikipedia.org/wiki/Separation_of_concerns" class="external" target="_blank">separate concerns</a> let’s put the JSON responses into separate files:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">mkdir</span> ~/hello-world/files
+
+$ <span class="hljs-built_in">cd</span> ~/hello-world/files
+
+$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;{&quot;url&quot;:&quot;https://raw.githubusercontent.com/leachim6/hello-world/blob/HEAD/j/json.json&quot;}&#x27;</span> &gt; json.json
+
+$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;{&quot;url&quot;:&quot;https://raw.githubusercontent.com/leachim6/hello-world/HEAD/c/css.css&quot;}&#x27;</span> &gt; css.json
+
+$ <span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;{&quot;url&quot;:&quot;https://raw.githubusercontent.com/leachim6/hello-world/HEAD/j/javascript.js&quot;}&#x27;</span> &gt; javascript.json
+</code></pre>
+<p>We replace our previous flow in <code>hello.xml</code> with a new one that accesses these files:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">copy</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;{concat(&#x27;./files/&#x27;, $request/params/language, &#x27;.json&#x27;)}&quot;</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$json&quot;</span>/&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$json&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dump</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$json&quot;</span>/&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span> <span class="hljs-attr">status</span>=<span class="hljs-string">&quot;404&quot;</span>&gt;</span>{&quot;error&quot;: &quot;Unknown language.&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>With the help of the <code>concat</code> function, the <a href="../reference/actions/copy.html"><code>copy</code> action</a> assembles a filename
+from the requested language and loads the file’s content into the <code>$json</code> variable.
+If <code>$json</code> is not empty, the <a href="../reference/actions/dump.html"><code>dump</code> action</a> then sends the content of <code>$json</code> as response.
+Otherwise the <a href="../reference/actions/echo.html"><code>echo</code> action</a> emits an error.</p>
+<pre><code class="language-bash">$ curl --include localhost:8080/css
+HTTP/1.1 200 OK
+…
+Content-Type: application/json
+
+{<span class="hljs-string">&quot;url&quot;</span>:<span class="hljs-string">&quot;https://raw.githubusercontent.com/leachim6/hello-world/HEAD/c/css.css&quot;</span>}
+</code></pre>
+<pre><code class="language-bash">$ curl --include localhost:8080/foo
+HTTP/1.1 404 Not Found
+…
+Content-Type: application/json
+
+{<span class="hljs-string">&quot;error&quot;</span>: <span class="hljs-string">&quot;Unknown language&quot;</span>}
+</code></pre>
+<p>Great! The frontend guys are happy that they can already request our rudimentary API while
+they are developing the UI for it.</p>
+<p>Let’s take another look at the code. Is it completely safe to use the <code>$request/params/language</code>
+as we did above? Of course it’s not! Using input from the client without proper sanitizing beforehand is always dangerous!</p>
+<blockquote>
+<p>📝
+<strong>Exercise:</strong> “Hack” our API to gain access to arbitrary files in your app directory, for example the <code>swagger.yaml</code> file.</p>
+<details><summary>💡 Hint…</summary>
+<p>Access to any file in our <code>~/hello-world</code> directory is possible by stuffing the whole file path into the
+<code>language</code> path parameter so that the filename assembled by the <code>concat</code> function above looks like <code>files/../swagger.yaml#.json</code>.</p>
+<p>Forward slashes have to be URL encoded as <code>%2f</code>, the hash tag <code>#</code> for stripping off the <code>.json</code> filename extension has to be encoded as <code>%23</code>. Instead of <code>%23</code> you could also use <code>%3f</code> for <code>?</code> or <code>%3b</code> for <code>;</code> here:</p>
+<pre><code class="language-bash">$ curl http://localhost:8080/..%2fswagger.yaml%23
+swagger: <span class="hljs-string">&quot;2.0&quot;</span>
+info:
+ version: <span class="hljs-string">&quot;1.0&quot;</span>
+ title: Hello World!
+…
+</code></pre>
+<p>Never use user input without checking it first!</p>
+</details>
+</blockquote>
+<h2 id="request-validation">Request Validation<a class="anchor" href="#request-validation"> # </a></h2>
+<p>We should fix that security threat by denying such potentially malicious requests.
+One simple solution would be to allow alphanumeric characters for the language parameter only.
+The <a href="../reference/functions/matches.html"><code>matches</code> function</a> helps with that:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;not(matches($request/params/language, &#x27;^[a-zA-Z0-9]+$&#x27;))&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span> <span class="hljs-attr">status</span>=<span class="hljs-string">&quot;400&quot;</span>&gt;</span>{&quot;error&quot;: &quot;Input validation failed!&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  …
+</code></pre>
+<p>Now we get:</p>
+<pre><code class="language-bash">$ curl --include http://localhost:8080/..%2fswagger.yaml%23
+HTTP/1.1 400 Bad Request
+…
+{<span class="hljs-string">&quot;error&quot;</span>: <span class="hljs-string">&quot;Input validation failed!&quot;</span>}
+</code></pre>
+<p>Okay, that works! But request validation is something that is supposed to be
+done with the help of the OpenAPI definition. So we better put it in our <code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml">      <span class="hljs-string">…</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">hello.xml</span>
+      <span class="hljs-comment"># ⬇ ⬇ ⬇</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">language</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">pattern:</span> <span class="hljs-string">^[a-zA-Z0-9]+$</span>
+</code></pre>
+<p>Then we have to enable the request validation feature in the top-level section of <code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">info:</span>
+  <span class="hljs-attr">version:</span> <span class="hljs-string">&quot;1.0&quot;</span>
+  <span class="hljs-attr">title:</span> <span class="hljs-string">Hello</span> <span class="hljs-string">World!</span>
+<span class="hljs-attr">x-flat-validate:</span>         <span class="hljs-comment"># ⬅</span>
+  <span class="hljs-attr">request:</span> <span class="hljs-literal">true</span>          <span class="hljs-comment"># ⬅</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>Let’s try again:</p>
+<pre><code class="language-bash">$ curl --silent localhost:8080/..%2fswagger.yaml%23 | jq
+{
+  <span class="hljs-string">&quot;error&quot;</span>: {
+    <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;Client request validation failed&quot;</span>,
+     …
+    <span class="hljs-string">&quot;info&quot;</span>: [
+      <span class="hljs-string">&quot;Pattern constraint violated in path for language: &#x27;../swagger.yaml#&#x27; does not match the pattern &#x27;^[a-zA-Z0-9]+$&#x27;.&quot;</span>
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p>📎
+Note how we “pipe” the response from <code>curl</code> through the <code>jq</code> command to get formatted JSON output.</p>
+</blockquote>
+<p>Having verified that the built-in error message was triggered, we can now remove our homegrown request validation from the flow.</p>
+<h2 id="working-with-templates">Working with Templates<a class="anchor" href="#working-with-templates"> # </a></h2>
+<p>It’s time to gradually move away from our local mock responses and deal with some real
+data from the <a href="https://github.com/leachim6/hello-world" class="external" target="_blank"><code>hello-world</code> repository at GitHub</a>.
+A suitable search request against the GitHub API for the C programming language for example looks like:</p>
+<pre><code class="language-bash">$ curl <span class="hljs-string">&#x27;https://api.github.com/search/code?q=hello+repo:leachim6/hello-world+filename:C+language:C&#x27;</span>
+{
+  <span class="hljs-string">&quot;total_count&quot;</span>: 4,
+  <span class="hljs-string">&quot;incomplete_results&quot;</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-string">&quot;items&quot;</span>: [
+    {
+      <span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;c.c&quot;</span>,
+      <span class="hljs-string">&quot;path&quot;</span>: <span class="hljs-string">&quot;c/c.c&quot;</span>,
+      …
+      <span class="hljs-string">&quot;html_url&quot;</span>: <span class="hljs-string">&quot;https://github.com/leachim6/hello-world/blob/4b5ff1ef90ceb442f5633fc9e5d28297ac0f69ff/c/c.c&quot;</span>,
+      <span class="hljs-string">&quot;repository&quot;</span>: {
+        …
+      },
+      <span class="hljs-string">&quot;score&quot;</span>: 12.970036
+    },
+    …
+  ]
+}
+</code></pre>
+<p>Whoa – that’s a lot to take in! Most of that 22 kB JSON response is irrelevant for us. Only the <code>html_url</code> field of the top-most ranked search result is the one that’s interesting.</p>
+<p>As a first step, we store that JSON as a mock for an upstream response:</p>
+<pre><code class="language-bash">$ curl --output ~/hello-world/files/mock.json <span class="hljs-string">&#x27;https://api.github.com/search/code?q=hello+repo:leachim6/hello-world+filename:C+language:C&#x27;</span>
+</code></pre>
+<p>In the flow, we load that <code>mock.json</code> file with <code>copy</code> and throw away all unwanted fields and search results with the help of a <a href="../reference/actions/template.html"><code>template</code> action</a>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- ⬇ ⬇ ⬇ --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">copy</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;files/mock.json&quot;</span>/&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{{ items/value[1]/html_url ?? &quot;&quot; }}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{&quot;url&quot;: {{ . }}}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- ⬆ ⬆ ⬆ --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+  …
+</code></pre>
+<p>Let’s take a closer look. The <code>copy</code> action has no explicit <code>out=&quot;…&quot;</code> and the following  <code>template</code> has no <code>in</code>. That means, the latter operates on the output of <code>copy</code> which is the content of our <code>mock.json</code> representing the body of the upstream response.
+The <code>template</code> action evaluates the expression between <code>{{</code> and <code>}}</code> and stores its result in the variable <code>$url</code> as set by <code>out</code>. The expression itself extracts the wanted <code>html_url</code> property from the first object of the <code>items</code> array (<code>items/value[1]</code>).
+If that property does not exist, the <a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator <code>??</code></a> sets the empty string <code>&quot;&quot;</code> as the result.</p>
+<p>The rest of the flow is only slightly modified: We now check if we have content in <code>$url</code> and create the final JSON response with a second <code>template</code>. If <code>$url</code> is empty, we send the error response as before.</p>
+<blockquote>
+<p>📎
+Instead of using the <code>$url</code> variable as input (<code>in=&quot;$url&quot;</code>) in the second template and operating on its content, we could have accessed <code>$url</code>
+directly <em>inside</em> the template:</p>
+<pre><code class="language-xml">  <span class="hljs-comment">&lt;!--         ⬇             ⬇ --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;&quot;</span>&gt;</span>{&quot;url&quot;: {{ $url }}}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+</code></pre>
+<p>Note that we now explicitly omit the input using <code>in=&quot;&quot;</code> to prevent
+the unwanted default input from being loaded – which happens to be the huge
+JSON output from the <code>copy</code> action.</p>
+</blockquote>
+<p>Here’s the result:</p>
+<pre><code class="language-bash">$ curl localhost:8080/c
+{<span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://github.com/leachim6/hello-world/blob/4b5ff1ef90ceb442f5633fc9e5d28297ac0f69ff/c/c.c&quot;</span>}
+</code></pre>
+<h2 id="upstream-requests">Upstream Requests<a class="anchor" href="#upstream-requests"> # </a></h2>
+<p>Now let’s send a real request. Thanks to FLAT that is easy:
+The <a href="../reference/actions/request.html"><code>request</code> action</a> sends an HTTP request to an upstream server and provides us
+with the response.
+The upstream URL is built with <code>concat</code>: As with the <code>curl</code> command from above we search for files containing the word <code>hello</code> in the <code>leachim6/hello-world</code> repository on GitHub.
+Now we want the filename and the language to match our <code>$request/params/language</code> parameter.
+For starters we simply <a href="../reference/actions/dump.html"><code>dump</code></a> the upstream response to see what we’re dealing with.
+We also remove the <code>copy</code> action from above for now – we’ll get back to it later on:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+    {
+      &quot;url&quot; : {{ concat(&quot;https://api.github.com/search/code&quot;,
+                        &quot;?q=hello&quot;,
+                        &quot;+repo:leachim6/hello-world&quot;,
+                        &quot;+filename:&quot;, $request/params/language,
+                        &quot;+language:&quot;, $request/params/language) }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">dump</span>/&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{{ items/value[1]/html_url ?? &quot;&quot; }}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  …
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<blockquote>
+<p>📎
+<code>dump</code> has no explicit <code>in</code> here and just takes the output of <code>request</code>.</p>
+</blockquote>
+<p>Requesting <code>/C</code> should result in the same 22 kB JSON response as <a href="#working-with-templates">before</a> – again formatted with <code>jq</code> for readability:</p>
+<pre><code class="language-bash">$ curl --silent localhost:8080/C | jq
+</code></pre>
+<p>However, requests for other languages such as <code>/html</code> or <code>/Java</code> are now possible, too.
+So let’s remove that <code>dump</code> action again and send another request:</p>
+<pre><code class="language-bash">$ curl --silent localhost:8080/html
+{<span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://github.com/leachim6/hello-world/blob/4b5ff1ef90ceb442f5633fc9e5d28297ac0f69ff/h/html.html&quot;</span>}
+</code></pre>
+<p>Almost! We now get in fact a filtered response from GitHub, but we’ve missed a tiny detail:
+The URL points to the HTML page with the code snippet on it instead of the snippet itself.</p>
+<blockquote>
+<p>📝
+<strong>Exercise:</strong> Use another <code>template</code> action with appropriate <a href="../reference/functions/README.html#string-functions">string functions</a> to modify <code>$url</code> so that it points to
+the <em>Raw</em> view on <code>raw.githubusercontent.com</code>.</p>
+<details><summary>💡 Hint…</summary>
+<pre><code class="language-xml"> …
+ <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+    {{ concat(&#x27;https://raw.githubusercontent.com/leachim6/hello-world&#x27;,
+              substring-after(., &#x27;/blob&#x27;))
+    }}
+   <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{&quot;url&quot;: {{ . }}}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+ …
+</code></pre>
+<p>Or, if you prefer using regular expressions:</p>
+<pre><code class="language-xml">   <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+     {{ replace(., &quot;^.*/blob&quot;, &quot;https://raw.githubusercontent.com/leachim6/hello-world&quot;)
+     }}
+   <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+</code></pre>
+</details>
+</blockquote>
+<p>Great! Now that we’ve fixed that and <code>$url</code> references the right destination,
+we can use <code>curl</code> to fetch a URL –
+and immediately load the respective “Hello World” code snippet afterwards:</p>
+<pre><code class="language-bash">$ curl <span class="hljs-string">&quot;<span class="hljs-subst">$(curl --silent localhost:8080/html | jq --raw-output .url)</span>&quot;</span>
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;<span class="hljs-built_in">head</span>&gt;
+    &lt;title&gt;Hello World HTML&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Hello World&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h2 id="mock-mock">Mock, mock!<a class="anchor" href="#mock-mock"> # </a></h2>
+<p>Often, the upstream API responses we build our applications upon are not cacheable at all. Therefore, they have to be fetched
+over and over again in every test run during development. Downloading large responses takes some time. Especially when dealing with a small scale upstream server, for example a test system, heavy testing may result in significant load and traffic on that system.</p>
+<p>Hence, loading a local mock file with <code>copy</code> instead of waiting for a complete request/response
+cycle of a real remote API call can speed up development notably.
+So it might pay off to work with local mocks whenever possible. The following flow snippet featuring our <code>copy</code> action from before illustrates how this could look like:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/get/mock or $request/headers/mock&quot;</span>&gt;</span>
+    <span class="hljs-comment">&lt;!-- Use mock.json when requested for example with &quot;?mock&quot; or the header &quot;Mock: 1&quot; --&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">copy</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;files/mock.json&quot;</span>/&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+      …
+    <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+  …
+</code></pre>
+<blockquote>
+<p>📎
+Note that in <code>$request/headers</code> the header field names are lower-case.</p>
+</blockquote>
+<p>Both</p>
+<pre><code class="language-bash">$ curl <span class="hljs-string">&#x27;localhost:8080/html?mock&#x27;</span>
+</code></pre>
+<p>and</p>
+<pre><code class="language-bash">$ curl --header Mock:1 localhost:8080/html
+</code></pre>
+<p>now return the URL from our local <code>mock.json</code> actually pointing to the C version of “Hello World”.</p>
+<blockquote>
+<p>📎
+Sending the header <code>Mock: true</code> will lead to different behavior as it enables FLAT’s <a href="../cookbook/builtin-mocking.html">built-in mock feature</a>
+which allows you to specify mock responses in the OpenAPI definition.</p>
+</blockquote>
+<h2 id="response-validation">Response Validation<a class="anchor" href="#response-validation"> # </a></h2>
+<p>To ensure that we don’t break our API while we are developing it further, let’s validate our responses, too. To do so, we add another schema for our own API responses to our <code>swagger.yaml</code>. That schema requires that the
+<code>url</code> property exist in the response and point to <code>raw.githubusercontent.com</code>.</p>
+<pre><code class="language-yaml">    <span class="hljs-string">…</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">hello.xml</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">language</span>
+          <span class="hljs-string">…</span>
+          <span class="hljs-attr">pattern:</span> <span class="hljs-string">^[a-zA-Z0-9]+$</span>
+      <span class="hljs-comment"># ⬇ ⬇ ⬇</span>
+      <span class="hljs-attr">produces:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-string">application/json</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">200:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">URL</span> <span class="hljs-string">to</span> <span class="hljs-string">a</span> <span class="hljs-string">&quot;Hello World&quot;</span> <span class="hljs-string">snippet</span>
+          <span class="hljs-attr">schema:</span>
+            <span class="hljs-attr">type:</span> <span class="hljs-string">object</span>
+            <span class="hljs-attr">required:</span>
+              <span class="hljs-bullet">-</span> <span class="hljs-string">url</span>
+            <span class="hljs-attr">properties:</span>
+              <span class="hljs-attr">url:</span>
+                <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+                <span class="hljs-attr">pattern:</span> <span class="hljs-string">^https://raw.githubusercontent.com/</span>
+</code></pre>
+<p>As before, the validation must be enabled in the top-level section:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">info:</span>
+  <span class="hljs-attr">version:</span> <span class="hljs-string">&quot;1.0&quot;</span>
+  <span class="hljs-attr">title:</span> <span class="hljs-string">Hello</span> <span class="hljs-string">World!</span>
+<span class="hljs-attr">x-flat-validate:</span>
+  <span class="hljs-attr">request:</span> <span class="hljs-literal">true</span>
+  <span class="hljs-attr">response:</span> <span class="hljs-literal">true</span>         <span class="hljs-comment"># ⬅</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>If we now alter the domain name in the second template of our flow to <code>flaw.githubusercontent.com</code>, we get a validation error:</p>
+<pre><code class="language-bash">$ curl --silent localhost:8080/json | jq
+{
+  <span class="hljs-string">&quot;error&quot;</span>: {
+    <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;Client response validation failed&quot;</span>,
+    <span class="hljs-string">&quot;status&quot;</span>: 500,
+    <span class="hljs-string">&quot;requestID&quot;</span>: <span class="hljs-string">&quot;XNrzofUrpUX@vMuN6J31EwAAADQ&quot;</span>,
+    <span class="hljs-string">&quot;info&quot;</span>: [
+      <span class="hljs-string">&quot;Pattern constraint violated in body for url: &#x27;https://flaw.githubusercontent.com/leachim6/hello-world/a5df0ebf101fbb762604717ad10165ad7d4a5317/j/json.json&#x27; does not match the pattern &#x27;^https://raw.githubusercontent.com/&#x27;.&quot;</span>
+    ]
+  }
+}
+</code></pre>
+<h2 id="request-configuration">Request Configuration<a class="anchor" href="#request-configuration"> # </a></h2>
+<p>Instead of assembling the request URL with <code>concat</code>, we can configure it.
+For better readability, we first move the request part into a
+<a href="../reference/actions/sub-flow.html"><code>sub-flow</code></a> –
+a separate flow file that can be called from others flows like a subroutine:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  …
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">sub-flow</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;upstream_request.xml&quot;</span>/&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+  …
+</code></pre>
+<p>The <code>request</code> action now resides in <code>upstream_request.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+    {
+      &quot;url&quot;: {{ concat(&quot;https://api.github.com/search/code&quot;,
+                        &quot;?q=hello&quot;,
+                        &quot;+repo:leachim6/hello-world&quot;,
+                        &quot;+filename:&quot;, $request/params/language,
+                        &quot;+language:&quot;, $request/params/language) }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>We can change that into the following, more readable code by using the
+<a href="../reference/functions/join.html"><code>join</code> function</a>
+on the individual <code>$query_parameters</code> to set the
+<a href="../reference/actions/request.html#query"><code>query</code> property of our <code>request</code> action</a>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$query_parameters&quot;</span>&gt;</span>
+    [
+      &quot;q=hello&quot;,
+      &quot;repo:leachim6/hello-world&quot;,
+      {{ concat(&quot;filename:&quot;, $request/params/language) }},
+      {{ concat(&quot;language:&quot;, $request/params/language) }}
+    ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+    {
+      &quot;url&quot;: &quot;https://api.github.com/search/code&quot;,
+      &quot;query&quot;: {{ join(&quot; &quot;, $query_parameters) }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="upstream-validation">Upstream Validation<a class="anchor" href="#upstream-validation"> # </a></h2>
+<p>Besides validating incoming requests and the response our API generates, we can also enable validation
+for our upstream request to GitHub and the associated response.</p>
+<p>So let’s enhance our request configuration in <code>upstream_request.xml</code> with some validation
+<a href="../reference/actions/request.html#options"><code>options</code></a>:</p>
+<pre><code class="language-xml">      …
+      &quot;query&quot;: {{ join(&quot; &quot;, $query_parameters) }},
+      {{// ⬇ ⬇ ⬇                                 ⬆ comma }}
+      &quot;options&quot;: {
+        &quot;definition&quot;: &quot;upstream.yaml&quot;,
+        &quot;validate-request&quot;: true
+      }
+      {{// ⬆ ⬆ ⬆ }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Furthermore, we need a second OpenAPI definition file (<code>upstream.yaml</code>)
+that describes valid upstream requests along with the expected responses:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">info:</span>
+  <span class="hljs-attr">version:</span> <span class="hljs-string">&quot;1.0&quot;</span>
+  <span class="hljs-attr">title:</span> <span class="hljs-string">GitHub</span> <span class="hljs-string">Search</span> <span class="hljs-string">API</span>
+<span class="hljs-attr">host:</span> <span class="hljs-string">api.github.com</span>
+<span class="hljs-attr">schemes:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">https</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/search/code:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">q</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">query</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">pattern:</span> <span class="hljs-string">.</span>
+</code></pre>
+<p>So far, this one checks that the query string actually contains a <code>q</code> parameter with an arbitrary string value.</p>
+<blockquote>
+<p>📝
+<strong>Exercise:</strong> Change the regular expression in <code>pattern</code> so that any invalid request query string is rejected with
+a <code>Pattern constraint violated in query for q</code> error in the FLAT runner log.</p>
+<details><summary>💡 Hint…</summary>
+<p><code>pattern: ^hello repo:leachim6/hello-world filename:\w+ language:\w+$</code></p>
+</details>
+</blockquote>
+<p>Excellent! Now the validation will ruthlessly reveal our mistakes, when we continue working on our request configuration.</p>
+<p>Next, we’ll take care of the responses: We enable validation for upstream responses</p>
+<pre><code class="language-xml">        …
+        &quot;validate-request&quot;: true, {{// ⬅ comma }}
+        &quot;validate-response&quot;: true {{// ⬅ }}
+      }
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>which we expect to be something like <code>{ &quot;total_count&quot;: &lt;integer&gt;, &quot;items&quot;: [ … ] }</code>:</p>
+<pre><code class="language-yaml">          <span class="hljs-string">…</span>
+          <span class="hljs-attr">pattern:</span> <span class="hljs-string">…</span>
+      <span class="hljs-comment"># ⬇ ⬇ ⬇</span>
+      <span class="hljs-attr">produces:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-string">application/json</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">200:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">GitHub</span> <span class="hljs-string">code</span> <span class="hljs-string">search</span> <span class="hljs-string">results</span>
+          <span class="hljs-attr">schema:</span>
+            <span class="hljs-attr">type:</span> <span class="hljs-string">object</span>
+            <span class="hljs-attr">required:</span>
+              <span class="hljs-bullet">-</span> <span class="hljs-string">total_count</span>
+              <span class="hljs-bullet">-</span> <span class="hljs-string">items</span>
+            <span class="hljs-attr">properties:</span>
+              <span class="hljs-attr">total_count:</span>
+                <span class="hljs-attr">type:</span> <span class="hljs-string">integer</span>
+              <span class="hljs-attr">items:</span>
+                <span class="hljs-attr">type:</span> <span class="hljs-string">array</span>
+</code></pre>
+<p>Now we’d immediately notice if GitHub changed relevant parts of its API that affect our
+“Hello World” API built on top of it.</p>
+<p>To abort the flow in case the upstream request or response is invalid or the request fails outright, we add the <code>exit-on-error</code> request option:</p>
+<pre><code class="language-xml">        …
+        &quot;validate-response&quot;: true, {{// ⬅ comma }}
+        &quot;exit-on-error&quot;: true      {{// ⬅ }}
+      }
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+</code></pre>
+<p>To see the effect, shorten the <code>hello-world</code> of the repository name to just <code>hello</code> in <code>upstream_request.xml</code>:</p>
+<pre><code class="language-xml">    …
+    [
+      &quot;q=hello&quot;,
+      &quot;repo:leachim6/hello&quot;,
+      <span class="hljs-comment">&lt;!--              ⬆ ⬆ ⬆ --&gt;</span>
+      …
+</code></pre>
+<p>If we request our API</p>
+<pre><code class="language-bash">$ curl -si localhost:8080/html
+</code></pre>
+<p>instead of the output</p>
+<pre><code>HTTP/1.1 404 Not Found
+…
+{&quot;error&quot;: &quot;Unknown language&quot;}
+</code></pre>
+<p>we now get</p>
+<pre><code>HTTP/1.1 502 Bad Gateway
+…
+{&quot;error&quot;:{&quot;message&quot;:&quot;Upstream Response Validation Failed&quot;,&quot;status&quot;:502,&quot;requestID&quot;:&quot;main&quot;,&quot;info&quot;:[&quot;No definition for status code 422 and no 'default'.&quot;,&quot;Upstream status: 422 Unprocessable Entity&quot;],&quot;code&quot;:3203}}
+</code></pre>
+<p>If you prefer to provide a custom error document, you can configure an error flow. Just create <code>error.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {
+      &quot;CustomError&quot;:  {
+        &quot;Message&quot;: {{ $error/message }},
+        &quot;Info&quot;: {{ $error/info }}
+      }
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">set-response-headers</span>&gt;</span>
+    {
+      &quot;Status&quot;: {{ $error/status }},
+      &quot;Error-Code&quot;: {{ $error/code }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">set-response-headers</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>and reference it on the top level in <code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">x-flat-error:</span>           <span class="hljs-comment"># ⬅</span>
+  <span class="hljs-attr">flow:</span> <span class="hljs-string">error.xml</span>       <span class="hljs-comment"># ⬅ error flow</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>We now get</p>
+<pre><code>HTTP/1.1 502 Bad Gateway
+…
+Error-Code: 3202
+…
+{&quot;CustomError&quot;:{&quot;Message&quot;:&quot;Upstream Response Validation Failed&quot;,&quot;Info&quot;:[&quot;No definition for status code 422 and no 'default'.&quot;,&quot;Upstream status: 422 Unprocessable Entity&quot;]}}
+</code></pre>
+<p>Now revert the change to <code>upstream_request.xml</code>:</p>
+<pre><code class="language-xml">    …
+    [
+      &quot;q=hello&quot;,
+      &quot;repo:leachim6/hello-world&quot;,
+      <span class="hljs-comment">&lt;!--              ⬆ ⬆ ⬆ --&gt;</span>
+      …
+</code></pre>
+<h2 id="improving-the-configuration">Improving the Configuration<a class="anchor" href="#improving-the-configuration"> # </a></h2>
+<p>Currently we send an error response if our template expression
+<code>{{ items/value[1]/html_url ?? &quot;&quot; }}</code> yields an empty string. A more straightforward way would be to simply check the number of results (<code>total_count</code>) that are returned:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$request/get/mock or $request/headers/mock&quot;</span>&gt;</span>
+  …
+  <span class="hljs-tag">&lt;/<span class="hljs-name">else</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- ⬇ ⬇ ⬇ --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$count&quot;</span>&gt;</span>{{ total_count ?? 0 }}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$count &gt; 0&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+      {{ concat(&#x27;https://raw.githubusercontent.com/leachim6/hello-world&#x27;,
+                substring-after(items/value[1]/html_url, &#x27;/blob&#x27;)) }}
+    <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{&quot;url&quot;: {{ . }}}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- ⬆ ⬆ ⬆ --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">else</span>&gt;</span>
+  …
+</code></pre>
+<p>As before, the <code>template</code> for <code>$count</code> operates on the result of the previous request and therefore has no <code>in=&quot;…&quot;</code>.</p>
+<p>Now we can completely do away with the <code>else</code> block if we change the above condition into <code>0 &gt;= $count</code> as the
+<a href="../reference/actions/echo.html"><code>echo</code> action</a> already finishes the request:</p>
+<pre><code class="language-xml">  …
+  <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;0 &gt;= $count&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> <span class="hljs-attr">mime</span>=<span class="hljs-string">&quot;application/json&quot;</span> <span class="hljs-attr">status</span>=<span class="hljs-string">&quot;404&quot;</span>&gt;</span>{&quot;error&quot;: &quot;Unknown language&quot;}<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>
+    {{ concat(&#x27;https://raw.githubusercontent.com/leachim6/hello-world&#x27;,
+              substring-after(items/value[1]/html_url, &#x27;/blob&#x27;)) }}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$url&quot;</span>&gt;</span>{&quot;url&quot;: {{ . }}}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<blockquote>
+<p>📝
+<strong>Exercise:</strong> Maybe the condition <code>0 &gt;= $count</code> hurts your eyes, too. Swap the operands
+and use an appropriate comparison operator: <code>$count … 0</code> Beware – we’re in XML land here!</p>
+<details><summary>💡 Hint…</summary>
+<p>To keep the XML well-formed when checking <code>$count &lt;= 0</code> we have to XML encode the <code>&lt;</code> becoming <code>&amp;lt;</code>:</p>
+<pre><code class="language-xml"> …
+ <span class="hljs-tag">&lt;<span class="hljs-name">if</span> <span class="hljs-attr">test</span>=<span class="hljs-string">&quot;$count <span class="hljs-symbol">&amp;lt;</span>= 0&quot;</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">echo</span> …&gt;</span>…<span class="hljs-tag">&lt;/<span class="hljs-name">echo</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+ …
+</code></pre>
+<p>Yeah – that’s even worse! Less accurate, but probably sufficient may be just <code>$count = 0</code>.
+Or maybe <code>not($count &gt; 0)</code>. You get the idea. Let’s stick with <code>$count = 0</code>.</p>
+</details>
+</blockquote>
+<p>Next, we are going to make the lengthy <code>concat</code> expression more readable by introducing
+<a href="../reference/templating/variable.html">template variables</a>.
+That leaves us with one single <code>template</code> action producing the final output:</p>
+<pre><code class="language-xml">  …
+  <span class="hljs-tag">&lt;/<span class="hljs-name">if</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {{$repo_url  := &quot;https://raw.githubusercontent.com/leachim6/hello-world&quot; }}
+    {{$file_path := substring-after(items/value[1]/html_url, &#x27;/blob&#x27;) }}
+
+    {&quot;url&quot;: {{ concat($repo_url, $file_path) }}}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Or, if you chose the regular expression solution above, you might prefer keeping the <code>replace</code> function:</p>
+<pre><code class="language-xml">  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {{$repo_url := &quot;https://raw.githubusercontent.com/leachim6/hello-world&quot; }}
+
+    {&quot;url&quot;: {{ replace(items/value[1]/html_url, &quot;^.*/blob&quot;, $repo_url) }}}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+</code></pre>
+<h2 id="when-things-go-south">When Things Go South<a class="anchor" href="#when-things-go-south"> # </a></h2>
+<blockquote>
+<p>⚠️
+This section is outdated!</p>
+</blockquote>
+<p>Consider the following situation: After a few weeks of live operation, your manager calls and informs you that the “Hello World” API has stopped functioning. He urges you to fix it as soon as possible. Let’s see for ourselves:</p>
+<pre><code class="language-bash">$ curl localhost:8080/html
+{<span class="hljs-string">&quot;error&quot;</span>: <span class="hljs-string">&quot;Unknown language&quot;</span>}
+</code></pre>
+<p><em>Sigh!</em> So how do we find out what is going wrong?</p>
+<p>In the default setup, the FLAT runner only logs severe errors to the log file and outputs them on the command line. If we want to get more information about what’s happening, we have to change FLAT’s debug settings. On startup, we can either set the environment variable
+<code>$FLAT_DEBUG</code></p>
+<pre><code class="language-bash">$ FLAT_DEBUG=<span class="hljs-string">&#x27;*:debug:log&#x27;</span> flat start ~/hello-world
+</code></pre>
+<p>or use the <code>-d</code> option</p>
+<pre><code class="language-bash">$ flat start -d <span class="hljs-string">&#x27;*:debug:log&#x27;</span> ~/hello-world
+</code></pre>
+<blockquote>
+<p>📎
+Mind the <code>'</code> quoting to prevent the shell from expanding <code>*</code>.</p>
+</blockquote>
+<p>Both commands start FLAT with the <a href="../reference/debugging.html">debug log level</a> lowered from <code>error</code> to <code>debug</code>.
+The <code>*</code> stands for any topic. <code>log</code> means that debug information will be written to the log file.</p>
+<blockquote>
+<p>📎
+<code>'*:debug:log'</code> is in fact the same as if we’ve just written <code>'*:debug'</code> or even <code>'*'</code>.</p>
+</blockquote>
+<p>So when we now request our API, a lot of information from the log file will be output on the terminal where we started FLAT. We can now browse through that pile of text or use a more specific topic. For example, if we were only interested in messages related to our <code>template</code> and <code>echo</code> actions we could set the debug topic to <code>template,echo</code>:</p>
+<pre><code class="language-bash">$ flat start -d template,<span class="hljs-built_in">echo</span> ~/hello-world
+</code></pre>
+<p>However, changing the default debug settings and restarting FLAT every time is not the proper way to go. Instead, we can simply send an appropriate <code>Debug</code> header with our request:</p>
+<pre><code class="language-bash">$ curl --header Debug:template,<span class="hljs-built_in">echo</span> localhost:8080/html
+</code></pre>
+<p>If we also set the debug sink to <code>inline</code> or <code>append</code>, the output
+will be included in the HTTP response rather than the log file, for example:</p>
+<pre><code class="language-bash">$ curl --header Debug:<span class="hljs-keyword">time</span>:debug:inline localhost:8080/html
+</code></pre>
+<p>The latter is the only reasonable way to debug on a production system where we usually don’t want to flood the logs with debug output. To enable header debugging,
+the environment variable <a href="../administration/configuration.html"><code>$FLAT_DEBUG_ALLOW_HEADER</code></a> must be set to <code>true</code>.</p>
+<blockquote>
+<p>📎
+If the <code>$FLAT_DEBUG_AUTH</code> environment variable is set (this is a <strong>must</strong> on production systems!), FLAT requires a password to enable debugging by means of the <code>Debug</code> header, for example <code>--header 'Debug: *:warn:append; auth=Pa5sw0rd'</code>.</p>
+</blockquote>
+<p>Besides the built-in debug information, custom debug output can help understand the flow process. The <a href="../reference/actions/debug.html"><code>debug</code> action</a> enables us to insert our own log lines into the flow, for example</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">debug</span> <span class="hljs-attr">level</span>=<span class="hljs-string">&quot;info&quot;</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;$request&quot;</span>/&gt;</span>
+  …
+</code></pre>
+<h2 id="configuration-files">Configuration Files<a class="anchor" href="#configuration-files"> # </a></h2>
+<p>The complete configuration files can be found in the companion repository <a href="https://github.com/sevenval/flat-tutorial-files" class="external" target="_blank">FLAT tutorial files</a>.</p>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#tools">Tools</a></li><li><a href="#getting-started">Getting Started</a></li><li><a href="#openapi">OpenAPI</a></li><li><a href="#in-the-flow">In the Flow</a></li><li><a href="#working-with-files">Working with Files</a></li><li><a href="#request-validation">Request Validation</a></li><li><a href="#working-with-templates">Working with Templates</a></li><li><a href="#upstream-requests">Upstream Requests</a></li><li><a href="#mock-mock">Mock, mock!</a></li><li><a href="#response-validation">Response Validation</a></li><li><a href="#request-configuration">Request Configuration</a></li><li><a href="#upstream-validation">Upstream Validation</a></li><li><a href="#improving-the-configuration">Improving the Configuration</a></li><li><a href="#when-things-go-south">When Things Go South</a></li><li><a href="#configuration-files">Configuration Files</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../tutorial/README.html")
+        </script>
+        </body>
+        </html>

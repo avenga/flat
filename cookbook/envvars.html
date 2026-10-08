@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Using Environment Variables</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="using-environment-variables">Using Environment Variables<a class="anchor" href="#using-environment-variables"> # </a></h1>
+<p>It is good practice to make a FLAT app configurable so that it can run in multiple environments. For example, the upstream APIs have different locations in a local development setup and the production system.</p>
+<p>FLAT runs as a <em>Docker Container</em> and can make use of the <em>environment variables</em> defined, for example, in the <code>Dockerfile</code>, <code>docker-compose.yaml</code> or with <code>docker run -e</code>.</p>
+<h2 id="defining-environment-variables">Defining Environment Variables<a class="anchor" href="#defining-environment-variables"> # </a></h2>
+<h3 id="docker">Docker<a class="anchor" href="#docker"> # </a></h3>
+<p>As usual, environment variables can be defined in the <code>docker-compose.yaml</code> like this:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">services:</span>
+  <span class="hljs-attr">flat:</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">code-registry.avenga.cloud/product/flat/flat/flatrunner</span>
+    <span class="hljs-attr">volumes:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">.:/app</span>
+    <span class="hljs-attr">ports:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-number">8080</span><span class="hljs-string">:8080</span>
+    <span class="hljs-attr">environment:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">MY_VAR=my</span> <span class="hljs-string">value</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">FLAT_DEBUG_ALLOW_HEADER=true</span>
+</code></pre>
+<p>Here, we have defined <code>MY_VAR</code> in the <code>environment</code> section and enabled debugging via HTTP header.
+(We assume, that you have a <code>swagger.yaml</code> and some API path that you can call. If you’re not so far, yet, checkout the <a href="../tutorial/README.html">tutorial</a>).</p>
+<p>Start the container with</p>
+<pre><code class="language-bash">$ docker compose up
+</code></pre>
+<p>and run the following <code>curl</code> command.
+The environment variables can be inspected with the <code>env</code> <a href="../reference/debugging.html">debug topic</a>:
+The <code>inline</code> sink interweaves the debug output with your API response. It will disturb your response, but it is sometimes handy for debugging:</p>
+<pre><code class="language-bash">$ curl -s -H debug:<span class="hljs-built_in">env</span>::inline localhost:8080
+debug   [<span class="hljs-built_in">env</span>]           Env vars: {
+    …
+    <span class="hljs-string">&quot;FLAT_DEBUG_ALLOW_HEADER&quot;</span>: <span class="hljs-string">&quot;true&quot;</span>,
+    …
+    <span class="hljs-string">&quot;MY_VAR&quot;</span>: <span class="hljs-string">&quot;my value&quot;</span>,
+    …
+}
+</code></pre>
+<p>There’s our <code>MY_VAR</code>!</p>
+<p>Another way of defining environment vars would be the <code>-e</code> flag of a simple <code>docker run</code>:</p>
+<pre><code class="language-bash">$ docker run --<span class="hljs-built_in">rm</span> -it -e MY_VAR=<span class="hljs-string">&quot;my value&quot;</span> -v <span class="hljs-string">&quot;<span class="hljs-subst">$(pwd)</span>:/app&quot;</span> code-registry.avenga.cloud/product/flat/flat-src/flatrunner
+</code></pre>
+<p>Great! We now know how to define environment variables. Let’s use them!</p>
+<h2 id="accessing-environment-variables-in-flows">Accessing Environment Variables in Flows<a class="anchor" href="#accessing-environment-variables-in-flows"> # </a></h2>
+<p>All environment variables are accessible from <a href="../reference/flow.html">flows</a> by the system <a href="../reference/variables.html">variable <code>$env</code></a>. It is an object with the defined environment variables as properties:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;MY_VAR&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;my value&quot;</span><span class="hljs-punctuation">,</span>
+  …
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>We could create a simple <a href="../reference/actions/template.html">template</a> to send our environment variable back to the client:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+  {
+    &quot;my var&quot;: {{ $env/MY_VAR }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="use-cases">Use Cases<a class="anchor" href="#use-cases"> # </a></h2>
+<h3 id="upstream-urls">Upstream URLs<a class="anchor" href="#upstream-urls"> # </a></h3>
+<p>A typical use-case for an environment variable is the base URL of an upstream API.</p>
+<p>Let’s define the origin of our auth service:</p>
+<pre><code class="language-bash">AUTH_SERVICE=http://localhost:3000
+</code></pre>
+<p>To <a href="../reference/actions/request.html">request</a> the auth service, we have to build a URL:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+  {
+    &quot;url&quot;: {{ concat($env/AUTH_SERVICE, &quot;/v1/logout&quot; )}},
+    &quot;headers&quot;: {
+      {{: $request/headers/authorization }}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>If the app is deployed into production, the <code>AUTH_SERVICE</code> variable will be set to another value, probably one with <code>https</code> and running on a different port.</p>
+<h2 id="jwt">JWT<a class="anchor" href="#jwt"> # </a></h2>
+<p>When working with <a href="https://en.wikipedia.org/wiki/JSON_Web_Token" class="external" target="_blank">JWT</a> a signing key (or two, in case of <code>RS*</code> algorithms) need to be configured in FLAT. It is good idea to pass these as environment variables.</p>
+<p>See <a href="jwt.html">Working with JWT</a> for a larger example.</p>
+<h2 id="credentials">Credentials<a class="anchor" href="#credentials"> # </a></h2>
+<p>Often, access between services is restricted by an <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Authentication" class="external" target="_blank">HTTP Authentication</a>.</p>
+<p>You could read Basic Authentication credentials from an environment variable in your <a href="../reference/actions/request.html#options">request</a>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+  {
+    &quot;url&quot;: &quot;…&quot;,
+    &quot;options&quot;: {
+      &quot;basic-auth-credentials&quot;: {{ $env/AUTH_SERVICE_CREDS }}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Or if you need to include a token in your requests:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+  {
+    &quot;url&quot;: &quot;…&quot;,
+    &quot;headers&quot;: {
+      &quot;authentication&quot;: {{ concat(&quot;Bearer &quot;, $env/AUTH_SERVICE_TOKEN) }}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li>Test Action <a href="../reference/actions/set-env.html"><code>set-env</code></a> (reference)</li>
+<li><a href="jwt.html">Working with JWT</a> (cookbook)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#defining-environment-variables">Defining Environment Variables</a></li><li><a href="#accessing-environment-variables-in-flows">Accessing Environment Variables in Flows</a></li><li><a href="#use-cases">Use Cases</a></li><li><a href="#jwt">JWT</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/envvars.html")
+        </script>
+        </body>
+        </html>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Variables</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="variables">Variables<a class="anchor" href="#variables"> # </a></h1>
+<p>Variables can be used to store intermediate results during <a href="flow.html">flow</a> execution.
+A valid variable name starts with <code>$</code> followed by a letter <code>a</code>…<code>z</code> or <code>A</code>…<code>Z</code> or an underscore <code>_</code>. More letters, underscores, the numbers <code>0</code>…<code>9</code> or hyphens <code>-</code> may follow.
+Names having the prefix <code>$xml</code> are considered invalid.</p>
+<h2 id="predefined-variables">Predefined Variables<a class="anchor" href="#predefined-variables"> # </a></h2>
+<p>The following predefined variables exist:</p>
+<ul>
+<li><a href="#body"><code>$body</code></a>: client request body</li>
+<li><a href="../cookbook/envvars.html"><code>$env</code></a>: environment variables</li>
+<li><a href="#request"><code>$request</code></a>: client request information</li>
+<li><code>$server</code>: server information</li>
+<li><a href="#upstream"><code>$upstream</code></a>: upstream response information</li>
+<li><a href="#error"><code>$error</code></a>: Contains information regarding the most recent error, but is initially empty.</li>
+</ul>
+<p>Try the following flow with</p>
+<pre><code class="language-bash">$ curl --data hello localhost:8080 | jq
+</code></pre>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+  {
+    &quot;$request&quot;: {
+      {{with $request }}{{: * }}{{end}}
+    },
+    &quot;$body&quot;: {{ $body }},
+    &quot;$upstream&quot;: {{ $upstream }},
+    &quot;$server&quot;: {
+      {{: $server/* }}
+    },
+    &quot;$env&quot;: {
+      {{: $env/* }}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>The actions <a href="actions/request.html"><code>request</code></a> and <a href="actions/requests.html"><code>requests</code></a> set the <code>$upstream</code> variable, too:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">requests</span>&gt;</span>
+  {
+    &quot;ok&quot;: {
+      &quot;url&quot;: &quot;https://httpbin.org/status/200&quot;
+    },
+    &quot;failure&quot;: {
+      &quot;url&quot;: &quot;https://httpbin.org/status/500&quot;
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">requests</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+  {
+    &quot;$upstream&quot;: {
+      {{with $upstream }}{{: * }}{{end}}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;$upstream&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;ok&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://httpbin.org/status/200&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;cacheHit&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;headers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> … <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;failure&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      …
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="defining-and-accessing-variables">Defining and Accessing Variables<a class="anchor" href="#defining-and-accessing-variables"> # </a></h2>
+<p>Global variables are usually defined as the output of <a href="actions/eval.html"><code>eval</code></a> actions.
+The variable name is defined in the <code>out=&quot;…&quot;</code> attribute. It must
+begin with <code>$</code> followed by a letter and then more letters or numbers.</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- $x = 1 --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">eval</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$x&quot;</span>&gt;</span>1<span class="hljs-tag">&lt;/<span class="hljs-name">eval</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- $x = $x + 5 --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">eval</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$x&quot;</span>&gt;</span>$x + 5<span class="hljs-tag">&lt;/<span class="hljs-name">eval</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- $answer = $x * 7 --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">eval</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$answer&quot;</span>&gt;</span>$x * 7<span class="hljs-tag">&lt;/<span class="hljs-name">eval</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>For structured JSON variables, you can use the <a href="actions/template.html"><code>template</code></a> action:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$cfg&quot;</span>&gt;</span>
+  {
+    &quot;stage&quot;: &quot;prod&quot;,
+    &quot;mock&quot;: {{ boolean($request/get/mock) }},
+    &quot;answer&quot;: {{ $answer }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Variables may be copied with <a href="actions/eval.html"><code>eval</code></a>, too:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">eval</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$client_request&quot;</span>&gt;</span>$request<span class="hljs-tag">&lt;/<span class="hljs-name">eval</span>&gt;</span>
+  …
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h3 id="local-variables">Local Variables<a class="anchor" href="#local-variables"> # </a></h3>
+<p><a href="templating/README.html">Templates</a> may define local variables with <a href="templating/variable.html"><code>{{$… := …}}</code></a>. Those variables are
+<a href="#undefined-variables">undefined</a> outside the template they’re defined in:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>{{$answer:= 42 }}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- null --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>{{ $answer }}<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<blockquote>
+<p>📎
+If a variable containing <strong>binary</strong> content is processed in a
+<a href="actions/template.html"><code>template</code></a> or <a href="actions/xslt.html"><code>xslt</code> action</a>,
+its content will probably end up being truncated, garbled or both.</p>
+</blockquote>
+<h2 id="undefined-variables">Undefined Variables<a class="anchor" href="#undefined-variables"> # </a></h2>
+<p>Attempting to access a variable that has not been set previously will yield
+an empty node-set. The empty node-set will be evaluated to <code>false</code> in
+conditions and produces the string <code>null</code> in placeholders:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {{if $undefined }}
+      will never be reached
+    {{else}}
+      <span class="hljs-comment">&lt;!-- null --&gt;</span>
+      {{ $undefined }}
+    {{end}}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="body"><code>$body</code><a class="anchor" href="#body"> # </a></h2>
+<p>The <code>$body</code> variable contains the request body.</p>
+<p>If the request body is JSON (<code>Content-Type: application/json</code>) <code>$body</code> contains the parsed JSON. You can access its properties with XPath expressions with a <code>json</code> segment before the top-level properties. E.g.</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;foo&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;bar&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;baz&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>The value for <code>foo</code> can be accessed by <code>$body/json/foo</code>, the value for <code>baz</code> by <code>$body/json/bar/baz</code>.</p>
+<p>In other cases the content is stored in <code>$body</code> as a string and cannot be accessed by XPath.</p>
+<h2 id="request"><code>$request</code><a class="anchor" href="#request"> # </a></h2>
+<p>The <code>$request</code> variable contains information about the incoming client request, such as the URL, the request header fields and possibly the query component or cookies, if any were sent.</p>
+<p>Example:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">request</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">method</span>&gt;</span>POST<span class="hljs-tag">&lt;/<span class="hljs-name">method</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">purpose</span>&gt;</span>main<span class="hljs-tag">&lt;/<span class="hljs-name">purpose</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">debug</span>/&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>12345<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">id</span>&gt;</span>XeeSVJ5AFt8VyXYagp3lvgAAACc<span class="hljs-tag">&lt;/<span class="hljs-name">id</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">url</span>&gt;</span>http://localhost:12345/api/proxy/foo?a=b<span class="hljs-symbol">&amp;amp;</span>c=d<span class="hljs-tag">&lt;/<span class="hljs-name">url</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">path</span>&gt;</span>/api/proxy/foo<span class="hljs-tag">&lt;/<span class="hljs-name">path</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">query</span>&gt;</span>a=b<span class="hljs-symbol">&amp;amp;</span>c=d<span class="hljs-tag">&lt;/<span class="hljs-name">query</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">headers</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost:12345<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">user-agent</span>&gt;</span>curl/7.64.0<span class="hljs-tag">&lt;/<span class="hljs-name">user-agent</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">accept</span>&gt;</span>*/*<span class="hljs-tag">&lt;/<span class="hljs-name">accept</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">cookie</span>&gt;</span>NAME1=VALUE1; NAME2=VALUE2<span class="hljs-tag">&lt;/<span class="hljs-name">cookie</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">content-type</span>&gt;</span>application/x-www-form-urlencoded<span class="hljs-tag">&lt;/<span class="hljs-name">content-type</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">foo</span>&gt;</span>asdf<span class="hljs-tag">&lt;/<span class="hljs-name">foo</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">bar</span>&gt;</span>qwer<span class="hljs-tag">&lt;/<span class="hljs-name">bar</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">content-length</span>&gt;</span>17<span class="hljs-tag">&lt;/<span class="hljs-name">content-length</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">headers</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">get</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">a</span>&gt;</span>b<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">c</span>&gt;</span>d<span class="hljs-tag">&lt;/<span class="hljs-name">c</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">get</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">cookies</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">NAME1</span>&gt;</span>VALUE1<span class="hljs-tag">&lt;/<span class="hljs-name">NAME1</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">NAME2</span>&gt;</span>VALUE2<span class="hljs-tag">&lt;/<span class="hljs-name">NAME2</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">cookies</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">endpoint</span>&gt;</span>/api/proxy<span class="hljs-tag">&lt;/<span class="hljs-name">endpoint</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+</code></pre>
+<p>As HTTP request headers are defined to be case-insensitive, their names are lower-cased for convenient access even if the client has sent the field name with upper-case letters, e.g.:</p>
+<pre><code>$request/headers/user-agent
+</code></pre>
+<p>If a client URL path is matched by a <a href="openapi/differences.html#wildcard-paths">wildcard path</a>, <code>$request/endpoint</code> is the path part preceding the part matched by <code>/**</code>. Otherwise, <code>$request/endpoint</code> is the same as <code>$request/path</code>.</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/api</span>
+<span class="hljs-string">…</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/**:</span>
+    <span class="hljs-string">…</span>
+  <span class="hljs-string">/foo/**:</span>
+    <span class="hljs-string">…</span>
+  <span class="hljs-string">/foo/qux:</span>
+    <span class="hljs-string">…</span>
+  <span class="hljs-string">/foo/{p1}:</span>
+    <span class="hljs-string">…</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Client URL</th>
+<th>matches</th>
+<th><code>$request/path</code></th>
+<th><code>$request/endpoint</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https://example.com/api/foo/qux</code></td>
+<td><code>/foo/qux</code></td>
+<td><code>/api/foo/qux</code></td>
+<td><code>/api/foo/qux</code></td>
+</tr>
+<tr>
+<td><code>https://example.com/api/foo/quuux</code></td>
+<td><code>/foo/{p1}</code></td>
+<td><code>/api/foo/quuux</code></td>
+<td><code>/api/foo/quuux</code></td>
+</tr>
+<tr>
+<td><code>https://example.com/api/foo/bar/qux</code></td>
+<td><code>/foo/**</code></td>
+<td><code>/api/foo/bar/qux</code></td>
+<td><code>/api/foo</code></td>
+</tr>
+<tr>
+<td><code>https://example.com/api/bar</code></td>
+<td><code>/**</code></td>
+<td><code>/api/bar</code></td>
+<td><code>/api</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="upstream"><code>$upstream</code><a class="anchor" href="#upstream"> # </a></h2>
+<p>The <code>$upstream</code> variable contains information about upstream responses. The properties for each upstream response are stored with the request ID (<a href="actions/request.html#id"><code>id</code> property</a> or <a href="actions/request.html#syntax"><code>content</code> attribute</a>).</p>
+<ul>
+<li><code>url</code> - The request URL (string)</li>
+<li><code>status</code> - The response status code (integer)</li>
+<li><code>cacheHit</code> - <code>true</code> if the response was served from a cache (see <a href="actions/request.html#options"><code>use-http-cache</code> or <code>force-cache-ttl</code> request options</a>), <code>false</code> otherwise</li>
+<li><code>headers</code> - The response headers, each with a lower-cased field name</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">upstream</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request1</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">url</span>&gt;</span>https://httpbin.org/status/200<span class="hljs-tag">&lt;/<span class="hljs-name">url</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">status</span> <span class="hljs-attr">number</span>=<span class="hljs-string">&quot;&quot;</span>&gt;</span>200<span class="hljs-tag">&lt;/<span class="hljs-name">status</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">cacheHit</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-name">cacheHit</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">headers</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">date</span>&gt;</span>Thu, 27 Aug 2020 14:12:33 GMT<span class="hljs-tag">&lt;/<span class="hljs-name">date</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">content-type</span>&gt;</span>text/html; charset=utf-8<span class="hljs-tag">&lt;/<span class="hljs-name">content-type</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">connection</span>&gt;</span>keep-alive<span class="hljs-tag">&lt;/<span class="hljs-name">connection</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">server</span>&gt;</span>gunicorn/19.9.0<span class="hljs-tag">&lt;/<span class="hljs-name">server</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">access-control-allow-origin</span>&gt;</span>*<span class="hljs-tag">&lt;/<span class="hljs-name">access-control-allow-origin</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">access-control-allow-credentials</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-name">access-control-allow-credentials</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">headers</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request1</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request2</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">url</span>&gt;</span>https://httpbin.org/status/500<span class="hljs-tag">&lt;/<span class="hljs-name">url</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">status</span> <span class="hljs-attr">number</span>=<span class="hljs-string">&quot;&quot;</span>&gt;</span>500<span class="hljs-tag">&lt;/<span class="hljs-name">status</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">cacheHit</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-name">cacheHit</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">headers</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">date</span>&gt;</span>Thu, 27 Aug 2020 14:12:33 GMT<span class="hljs-tag">&lt;/<span class="hljs-name">date</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">content-type</span>&gt;</span>text/html; charset=utf-8<span class="hljs-tag">&lt;/<span class="hljs-name">content-type</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">connection</span>&gt;</span>keep-alive<span class="hljs-tag">&lt;/<span class="hljs-name">connection</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">server</span>&gt;</span>gunicorn/19.9.0<span class="hljs-tag">&lt;/<span class="hljs-name">server</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">access-control-allow-origin</span>&gt;</span>*<span class="hljs-tag">&lt;/<span class="hljs-name">access-control-allow-origin</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">access-control-allow-credentials</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-name">access-control-allow-credentials</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">headers</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request2</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">upstream</span>&gt;</span>
+</code></pre>
+<p>To check, for example, if the status code of the response with the ID <code>myRequest</code> is successful you can use the following XPath expression:</p>
+<pre><code>$upstream/myRequest/status = 200
+</code></pre>
+<h2 id="error"><code>$error</code><a class="anchor" href="#error"> # </a></h2>
+<p>Client request and response validation, upstream connection and request and response validation errors, and those triggered by the <a href="actions/error.html"><code>error</code> action</a> will store information about the error in <code>$error</code>. While initially empty, <code>$error</code> will have the following properties containing information about the most recent error, unless it is triggered by the <code>error</code> action:</p>
+<ul>
+<li><code>status</code> - the HTTP status that is used by default for responses if the error was passed to the client (type: <code>number</code>)</li>
+<li><code>code</code> - an error code (type: <code>number</code>)</li>
+<li><code>message</code> - a single line of text describing the error (type: <code>string</code>)</li>
+<li><code>info</code> - detailed information about the error (type: <code>array</code> of <code>string</code>)</li>
+<li><code>requestID</code> - the correlation ID as it should appear in the logs (type: <code>string</code>)</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">400</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3204</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;message&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Input Validation Failed&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;info&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-string">&quot;Path /api/empty-body/ not found.&quot;</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestID&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XYOGvOu@c2mhpIlgFB-yPwAAAF8&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>If set by the <code>error</code> action, <code>$error</code> contains the <a href="templating/README.html">JSON template result</a> of the action’s element body.</p>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="../administration/configuration.html">Environment Variables</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a> (cookbook)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#predefined-variables">Predefined Variables</a></li><li><a href="#defining-and-accessing-variables">Defining and Accessing Variables</a></li><li><a href="#undefined-variables">Undefined Variables</a></li><li><a href="#body">$body</a></li><li><a href="#request">$request</a></li><li><a href="#upstream">$upstream</a></li><li><a href="#error">$error</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../reference/variables.html")
+        </script>
+        </body>
+        </html>

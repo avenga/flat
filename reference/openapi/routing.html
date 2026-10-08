@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Routing</title>
+        <link rel="stylesheet" href="../../assets/highlightjs.css">
+        <link rel="stylesheet" href="../../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="routing">Routing<a class="anchor" href="#routing"> # </a></h1>
+<p>An API definition must provide a list of callable <em>paths</em> – sometimes also called <em>routes</em> or <em>endpoints</em>.</p>
+<p>In <code>swagger.yaml</code> this is defined in the <code>paths</code> section:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">info:</span>
+  <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;…&quot;</span>
+  <span class="hljs-attr">version:</span> <span class="hljs-string">&quot;1.0.0&quot;</span>
+  <span class="hljs-attr">title:</span> <span class="hljs-string">&quot;My API&quot;</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">&quot;/v1&quot;</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">200:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;Get a list of all users&quot;</span>
+    <span class="hljs-attr">post:</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">201:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;User created&quot;</span>
+  <span class="hljs-string">/dashboard:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-string">…</span>
+</code></pre>
+<p>One important setting is the <code>basePath</code> property. All described API paths are only accessible below that <code>basePath</code>.</p>
+<p>In general, only the paths that are explicitly defined are permissible, i.e. they may not be extended arbitrarily.</p>
+<p>In our example, the following paths are valid:</p>
+<pre><code>/v1/users
+/v1/dashboard
+</code></pre>
+<p>While these are undefined (especially those pointing outside of base path):</p>
+<pre><code>/v1
+/users
+/v1/users/too/long
+</code></pre>
+<p>The Swagger docs have more information on <a href="https://swagger.io/docs/specification/v2_0/paths-and-operations/" class="external" target="_blank">paths and operations</a>.</p>
+<p>To skirt the rule that every single permissible path must be defined, you can use FLAT’s <a href="differences.html#wildcard-paths">wildcard path feature</a> to match arbitrarily long request paths. Wildcard paths, i.e. paths ending with <code>/**</code>, match all paths sharing the same prefix.
+For example, by adding the wildcard path <code>/users/**</code> to the above definition, the formerly undefined path <code>/v1/users/too/long</code> will be matched, too, as well as any other path starting with <code>/v1/users/</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">&quot;/v1&quot;</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users:</span>
+    <span class="hljs-string">…</span>
+  <span class="hljs-string">/users/**:</span>
+    <span class="hljs-comment"># Wildcard path matching /v1/users/…</span>
+  <span class="hljs-string">/dashboard:</span>
+    <span class="hljs-string">…</span>
+</code></pre>
+<h2 id="assigning-flat-flows">Assigning FLAT Flows<a class="anchor" href="#assigning-flat-flows"> # </a></h2>
+<p>In FLAT you can assign a <a href="../flow.html">flow</a> file to every API path to define the request processing. This is done with the <code>x-flat-flow</code> property:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-comment"># flow for GET /users</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">api/users.xml</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">200:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;Get a list of all users&quot;</span>
+    <span class="hljs-attr">post:</span>
+      <span class="hljs-comment"># flow for POST /users</span>
+      <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">api/create-user.xml</span>
+      <span class="hljs-attr">responses:</span>
+        <span class="hljs-attr">201:</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;User created&quot;</span>
+  <span class="hljs-string">/dashboard:</span>
+    <span class="hljs-comment"># flow for /dashboard (all methods)</span>
+    <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">api/dashboard.xml</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-string">…</span>
+</code></pre>
+<p>You can specify a flow for a path (as in <code>/dashboard</code>) or for specific methods/operations (as in <code>/users</code>). The same flow can be used for multiple paths or methods.</p>
+<h3 id="fallback-flow">Fallback Flow<a class="anchor" href="#fallback-flow"> # </a></h3>
+<p>An <code>x-flat-flow</code> property set directly in the <code>paths</code> object behaves as a <em>fallback flow</em>. If the incoming request has matched a defined path, but that path did not define a flow, the fallback flow will be executed:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">paths:</span>
+  <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">api/fallback.xml</span>
+</code></pre>
+<h3 id="init-flow">Init Flow<a class="anchor" href="#init-flow"> # </a></h3>
+<p>An <em>init flow</em> is a separate flow file that is executed before the regular <a href="../flow.html">flow</a> or <a href="routing.html#assigning-flat-proxies">configured proxy</a> defined for an API path. It is specified by setting <code>x-flat-init</code> on
+the top level in the OpenAPI definition:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">x-flat-init:</span> <span class="hljs-string">init.xml</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users:</span>
+    <span class="hljs-attr">get:</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>The init flow can be used to <a href="../../cookbook/init-flow.html">extract common initialization
+tasks</a>, e.g. initialize variables or set HTTP response
+headers.</p>
+<p>For requests outside of the API <code>basePath</code> (e.g. <code>/</code> or <code>/assets</code>), the init
+flow is <em>not</em> executed. It is only called for API requests.</p>
+<p>A <a href="../flow.html#break"><code>break</code></a> statement in the init flow terminates the <strong>whole
+request</strong>; the regular flow (specified by <code>x-flat-flow</code>) is <em>not</em> executed. A
+<a href="../flow.html#return"><code>return</code></a> statement terminates only the init flow; the regular flow
+is executed. Terminating <a href="../actions/README.html">actions</a> like
+<a href="../actions/echo.html"><code>echo</code></a> or <a href="../actions/dump.html"><code>dump</code></a> will prevent the actual
+flow from being executed, too.</p>
+<h3 id="error-flow">Error Flow<a class="anchor" href="#error-flow"> # </a></h3>
+<p>An <em>error flow</em> is an optional separate flow file that is executed if a client request or response validation error has occurred, or if the <code>exit-on-error</code> option was set for a <a href="../actions/request.html">request</a>, <a href="../actions/proxy-request.html">proxy-request</a> or <a href="routing.html#assigning-flat-proxies">configured proxy</a> that has failed.
+It is specified by setting the <code>flow</code> property of <code>x-flat-error</code> on the top level in the OpenAPI definition:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">x-flat-error:</span>
+  <span class="hljs-attr">flow:</span> <span class="hljs-string">error.xml</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>The error flow can be used to <a href="../../cookbook/error-flow.html">produce error messages with a custom format or status</a>. Note that the output generated after the error flow has run will not be validated. Additionally, errors encountered while the error flow is processed will not re-start the error flow.</p>
+<h3 id="default-flow">Default Flow<a class="anchor" href="#default-flow"> # </a></h3>
+<p>Requests to resources outside the <code>basePath</code> are handled by the default flow defined
+in <code>conf/flow.xml</code>. This allows for <a href="../../cookbook/file-serving.html">serving HTML, images, JavaScript</a> and the like.</p>
+<h2 id="assigning-flat-proxies">Assigning FLAT Proxies<a class="anchor" href="#assigning-flat-proxies"> # </a></h2>
+<p>If FLAT acts as a proxy for an upstream API on a specific route, you could assign a flow containing a <a href="../actions/proxy-request.html"><code>proxy-request</code> action</a>.</p>
+<p>A simpler way to achieve this is by using <code>x-flat-proxy</code> in the <code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">basePath:</span> <span class="hljs-string">/api</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users/**:</span>
+    <span class="hljs-attr">x-flat-proxy:</span>
+      <span class="hljs-attr">origin:</span> <span class="hljs-string">https://users.upstream.example.com</span>
+      <span class="hljs-attr">stripEndpoint:</span> <span class="hljs-literal">true</span>
+      <span class="hljs-attr">addPrefix:</span> <span class="hljs-string">/v4</span>
+      <span class="hljs-attr">headers:</span>
+        <span class="hljs-attr">Correlation-ID:</span> <span class="hljs-number">42</span>
+      <span class="hljs-attr">options:</span>
+        <span class="hljs-attr">timeout:</span> <span class="hljs-number">2</span>
+        <span class="hljs-attr">definition:</span> <span class="hljs-string">users-upstream.yaml</span>
+        <span class="hljs-attr">validate-response:</span> <span class="hljs-string">report-only</span>
+</code></pre>
+<p>A client request to <code>https://client.example.com/api/users/profile</code> will be proxied to <code>https://users.upstream.example.com/v4/profile</code>. See <a href="differences.html#wildcard-paths">wildcard paths</a> for more information about <code>/**</code>.</p>
+<p><code>x-flat-proxy</code> can be used below <code>paths</code>, <code>paths/&lt;path&gt;</code> and <code>paths/&lt;path&gt;/&lt;operation&gt;</code>.</p>
+<p>The configuration for <code>x-flat-proxy</code> is the same as that for a <a href="../actions/proxy-request.html"><code>proxy-request</code> action</a> (translated from JSON to YAML syntax).</p>
+<p>If configured, the <a href="routing.html#init-flow">init flow</a> is executed before the proxy request. If configured, the <a href="routing.html#error-flow">error flow</a> is executed if the <code>exit-on-error</code> option was set and the proxy request fails.</p>
+<p><code>x-flat-proxy</code> and <code>x-flat-flow</code> are alternatives and cannot be used in combination.</p>
+<h2 id="path-parameters">Path Parameters<a class="anchor" href="#path-parameters"> # </a></h2>
+<p>Swagger paths can define path parameters:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/users/{userid}:</span>
+    <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">api/user-info.xml</span>
+    <span class="hljs-string">…</span>
+</code></pre>
+<p>All named parameters are available from inside the flow in the predefined <a href="../variables.html#predefined-variables">variable <code>$request</code></a> as properties of the <code>$request/params</code> object:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+{
+  &quot;user&quot;: {
+    &quot;name&quot;: {{ $request/params/userid }}
+  }
+}
+<span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+</code></pre>
+
+        <nav class="main"><ul><li><a href="../../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../../administration/docker.html">Docker</a></li>
+<li><a href="../../administration/configuration.html">Configuration</a></li>
+<li><a href="../../administration/logging.html">Logging</a></li>
+<li><a href="../../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../../reference/actions/README.html">Actions</a></summary><ul><li><a href="../../reference/actions/auth.html">auth</a></li>
+<li><a href="../../reference/actions/copy.html">copy</a></li>
+<li><a href="../../reference/actions/debug.html">debug</a></li>
+<li><a href="../../reference/actions/dump.html">dump</a></li>
+<li><a href="../../reference/actions/echo.html">echo</a></li>
+<li><a href="../../reference/actions/error.html">error</a></li>
+<li><a href="../../reference/actions/eval.html">eval</a></li>
+<li><a href="../../reference/actions/log.html">log</a></li>
+<li><a href="../../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../../reference/actions/regex.html">regex</a></li>
+<li><a href="../../reference/actions/request.html">request</a></li>
+<li><a href="../../reference/actions/requests.html">requests</a></li>
+<li><a href="../../reference/actions/serve.html">serve</a></li>
+<li><a href="../../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../../reference/actions/template.html">template</a></li>
+<li><a href="../../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../../reference/configuration.html">Configuration</a></li>
+<li><a href="../../reference/debugging.html">Debugging</a></li>
+<li><a href="../../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../../reference/functions/README.html">Functions</a></summary><ul><li><a href="../../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../../reference/functions/array.html">array()</a></li>
+<li><a href="../../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../../reference/functions/body.html">body()</a></li>
+<li><a href="../../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../../reference/functions/content.html">content()</a></li>
+<li><a href="../../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../../reference/functions/join.html">join()</a></li>
+<li><a href="../../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../../reference/functions/matches.html">matches()</a></li>
+<li><a href="../../reference/functions/md5.html">md5()</a></li>
+<li><a href="../../reference/functions/replace.html">replace()</a></li>
+<li><a href="../../reference/functions/sort.html">sort()</a></li>
+<li><a href="../../reference/functions/split.html">split()</a></li>
+<li><a href="../../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../../reference/functions/trim.html">trim()</a></li>
+<li><a href="../../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../../reference/testing/README.html">Testing</a></li>
+<li><a href="../../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#assigning-flat-flows">Assigning FLAT Flows</a></li><li><a href="#assigning-flat-proxies">Assigning FLAT Proxies</a></li><li><a href="#path-parameters">Path Parameters</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../../assets/minisearch.js"></script>
+        <script src="../../assets/search-index.js"></script>
+        <script src="../../assets/script.js"></script>
+        <script>
+        const baseURI = "../../";
+        selectNavElement("../../reference/openapi/routing.html")
+        </script>
+        </body>
+        </html>

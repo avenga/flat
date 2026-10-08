@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Bearer Authentication</title>
+        <link rel="stylesheet" href="../../assets/highlightjs.css">
+        <link rel="stylesheet" href="../../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="bearer-authentication">Bearer Authentication<a class="anchor" href="#bearer-authentication"> # </a></h1>
+<p>FLAT uses the <a href="security.html">security scheme</a> of type <code>apiKey</code> to implement <em>Bearer Authentication</em> based on JSON Web Tokens (JWT).
+FLAT’s <code>x-flat-jwt</code> <a href="differences.html">extension property</a> allows you to specify the details.</p>
+<h2 id="the-x-flat-jwt-property">The <code>x-flat-jwt</code> Property<a class="anchor" href="#the-x-flat-jwt-property"> # </a></h2>
+<p>The <code>x-flat-jwt</code> property is an object with properties describing the expected JWT token:</p>
+<ul>
+<li><code>key</code>: Required key to decode the JSON Web Signature (JWS). This can either be specified with a value, or by referencing a file (<code>file</code>) or an <a href="../../administration/configuration.html#environment-variables">environment variable</a> (<code>env</code>).</li>
+<li><code>alg</code>: The signing algorithm the JWS is expected to be created with. This can either be specified with a value, or by referencing a file (<code>file</code>) or an environment variable (<code>env</code>). Valid values are <code>HS256</code>, <code>HS385</code>, <code>HS512</code>, <code>RS256</code>, <code>RS384</code> or <code>RS512</code>
+as well as <code>HS</code> or <code>RS</code> for any one of the supported <em>HMAC</em> or <em>RSASSA</em> algorithms.</li>
+<li><code>out-var</code>: The name of the <a href="../variables.html">variable</a> that stores the JWT and can be used in the <a href="../flow.html">flow</a>. It must be a proper variable name, starting with <code>$</code> (default: <code>&quot;$jwt&quot;</code>).</li>
+<li><code>out-header</code>: The name of an HTTP request header that shall carry the JWT in upstream requests.</li>
+<li><code>claims</code>: An object with claims the JWT payload is expected to contain. The property names are the claim names, the expected claim value is specified either with a value, or by referencing a file (<code>file</code>) or an environment variable (<code>env</code>).</li>
+<li><code>scope-claim</code>: The name of the claim, storing the scope of the token (string; default: <code>scope</code>). The claim value must either be
+<ul>
+<li>a string containing a whitespace separated list of scopes (<code>&quot;scope1 scope2 scope3&quot;</code>) or</li>
+<li>an array with a string entry for each scope (<code>[&quot;scope1&quot;, &quot;scope2&quot;, &quot;scope3&quot;]</code>).</li>
+</ul>
+</li>
+<li><code>post-check-flow</code>: The path to a flow executed after the JWT is checked and found valid. In this flow, e.g. additional checks can be implemented (use the <a href="../actions/error.html"><code>error</code> action</a> to throw errors).</li>
+</ul>
+<p>The token is considered valid if all of the following are true:</p>
+<ul>
+<li>the JWS can be decoded,</li>
+<li>the JWS has a proper JWT,</li>
+<li>the JWT is not expired,</li>
+<li>the JWT contains the expected claims, if any are configured,</li>
+<li>the scope of the token contains all required scopes as specified in the security requirement,</li>
+<li>the JWT can be stored in a variable.</li>
+</ul>
+<p><code>$jwt</code> or the alternative variable specified in <code>out-var</code> and the header specified in <code>out-header</code> will be unset if the token is not valid.</p>
+<h2 id="jwt-in-authorization-header">JWT in <code>Authorization</code> Header<a class="anchor" href="#jwt-in-authorization-header"> # </a></h2>
+<p>Use a <a href="https://swagger.io/specification/v2/#security-scheme-object" class="external" target="_blank">Security Scheme Object</a> with <code>type: apiKey</code>, <code>in: header</code> and <code>name: Authorization</code> if the JWT is expected to be sent as a bearer token in an <code>Authorization</code> header; e.g.:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTHeaderAuth:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Authorization</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">secret.pem</span>
+      <span class="hljs-attr">alg:</span>
+        <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_JWT_ALG</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$header_token</span>
+      <span class="hljs-attr">scope-claim:</span> <span class="hljs-string">permission</span>
+      <span class="hljs-attr">claims:</span>
+        <span class="hljs-attr">aud:</span>
+          <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_JWT_AUDIENCE</span>
+</code></pre>
+<p>The code in this example defines a security scheme named <code>JWTHeaderAuth</code>.
+The token is expected to be a bearer token in the <code>Authorization</code> header.
+The key is read from a file named <code>secret.pem</code> relative to the <code>swagger.yaml</code>.
+The signing algorithm is read from the <code>FLAT_JWT_ALG</code> environment variable.
+The JWT will be stored in the <code>$header_token</code> variable.
+The scope of the token is specified in a <code>permission</code> claim.
+The JWT payload is expected to contain an <code>aud</code> claim with a value read from the <code>FLAT_JWT_AUDIENCE</code> environment variable.</p>
+<p>If the request does not contain an <code>Authorization</code> header with the proper bearer structure, or the token is invalid, this security scheme will fail.</p>
+<h2 id="jwt-in-cookie">JWT in Cookie<a class="anchor" href="#jwt-in-cookie"> # </a></h2>
+<p>Use a <a href="https://swagger.io/specification/v2/#security-scheme-object" class="external" target="_blank">Security Scheme Object</a> with <code>type: apiKey</code>, <code>in: header</code>, <code>name: Cookie</code> and <code>x-flat-cookiename: &lt;name&gt;</code> if the JWT is expected to be sent as a cookie value; e.g.:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookieAuth:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_COOKIE_SECRET</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$cookie_token</span>
+</code></pre>
+<p>In this example the key is read from the <code>FLAT_COOKIE_SECRET</code> environment variable.
+The JWT signing algorithm is unspecified – it defaults to <code>HS256</code>.
+The JWT will be stored in <code>$cookie_token</code>.
+No claims are expected.</p>
+<p>If the request does not contain a <code>Cookie</code> header with an <code>authtoken</code> cookie, or the token is invalid, this security scheme will fail.</p>
+<h2 id="applying-security-schemes">Applying Security Schemes<a class="anchor" href="#applying-security-schemes"> # </a></h2>
+<p>In Swagger, security schemes can be specified at the top level (default security) or for specific operations.
+With FLAT, you can also specify a security scheme for a specific path (default security for all operations on the path).</p>
+<p>In the following example, a <code>GET</code> request to <code>/foo</code> must satisfy the security scheme named <code>JWTHeaderAuth</code>,
+a <code>POST</code> request to <code>/foo</code> must satisfy the security scheme named <code>JWTHeaderAuth</code> and the token must have both <code>write:foo</code> and <code>read:bar</code> scopes,
+while e.g. a <code>DELETE</code> or <code>PUT</code> request to <code>/foo</code> must satisfy the security scheme named <code>JWTCookieAuth</code>.
+All other requests must satisfy either the <code>JWTHeaderAuth</code> <strong>or</strong> <code>JWTCookieAuth</code> security schemes.</p>
+<p><strong>Note:</strong> While in Swagger 2.0, specifying scopes in security requirements is limited to OAuth2 security definitions, FLAT has no such limitation.</p>
+<pre><code class="language-yaml"><span class="hljs-comment"># default</span>
+<span class="hljs-attr">security:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> []
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookieAuth:</span> []
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/foo:</span>
+    <span class="hljs-comment"># default for all operations on /foo</span>
+    <span class="hljs-attr">security:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookieAuth:</span> []
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-comment"># specific for GET on /foo</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> []
+    <span class="hljs-attr">post:</span>
+      <span class="hljs-comment"># specific for POST on /foo</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> [ <span class="hljs-string">write:foo</span>, <span class="hljs-string">read:bar</span> ]
+</code></pre>
+<p>If a request does not pass the security check, it is rejected with status code <code>401</code> or <code>403</code> and error code <code>3206</code>, and the <a href="routing.html#error-flow">error flow</a> is run, if configured.</p>
+<p>The security check is performed after <a href="validation.html">validation</a>.</p>
+<h2 id="full-example">Full Example<a class="anchor" href="#full-example"> # </a></h2>
+<pre><code class="language-yaml"><span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTHeaderAuth:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Authorization</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">secret.pem</span>
+      <span class="hljs-attr">alg:</span>
+        <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_JWT_ALG</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$header_token</span>
+      <span class="hljs-attr">scope-claim:</span> <span class="hljs-string">permission</span>
+      <span class="hljs-attr">claims:</span>
+        <span class="hljs-attr">aud:</span>
+          <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_JWT_AUDIENCE</span>
+  <span class="hljs-attr">JWTCookieAuth:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_COOKIE_SECRET</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$cookie_token</span>
+  <span class="hljs-attr">JWTCookieAuth2:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken2</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">env:</span> <span class="hljs-string">FLAT_COOKIE_SECRET</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$cookie_token2</span>
+      <span class="hljs-attr">post-check-flow:</span> <span class="hljs-string">check-cookie-jwt.xml</span>
+<span class="hljs-attr">security:</span>                     <span class="hljs-comment"># alternatives: token in Authorization header or authtoken cookie</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> []
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookieAuth:</span> []
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/:</span>                          <span class="hljs-comment"># default security as defined at top-level</span>
+  <span class="hljs-string">/foo:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">security:</span>               <span class="hljs-comment"># token must be in Authorization header</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> []
+    <span class="hljs-attr">post:</span>
+      <span class="hljs-comment"># specific for POST on /foo</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> [ <span class="hljs-string">write:foo</span>, <span class="hljs-string">read:bar</span> ]
+  <span class="hljs-string">/projects/{p}:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookieAuth2:</span> []
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+</code></pre>
+<p>The <a href="../flow.html">flow</a> <code>check-cookie-jwt.xml</code> checks whether the value of the <code>pid</code> JWT claim equals the <code>p</code> request path parameter:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">log</span>&gt;</span>
+  {
+    &quot;token_id&quot;: {{ $cookie_token2/pid }},
+    &quot;path_id&quot;: {{ $request/params/p }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">log</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">error</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;not($cookie_token2/pid) or $cookie_token2/pid != $request/params/p&quot;</span>&gt;</span>
+  {
+    &quot;status&quot;: 401,
+    &quot;message&quot;: &quot;Token is not applicable for this project.&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">error</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="forwarding-jwt-upstream">Forwarding JWT Upstream<a class="anchor" href="#forwarding-jwt-upstream"> # </a></h2>
+<p>The claims of an incoming JWT are stored in <code>$jwt</code> – or in the global
+<a href="../variables.html">variable</a> that you specify in the <code>out-var</code>
+property of <code>x-flat-jwt</code>.
+In a <a href="../actions/request.html"><code>request</code></a> or
+<a href="../actions/proxy-request.html"><code>proxy-request</code></a> action you can send
+these claims upstream, for example using a query parameter or a header:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">proxy-request</span>&gt;</span>
+  {
+    &quot;url&quot;: &quot;https://httpbin.org/get&quot;,
+    &quot;query&quot;: {{ $jwt }},                  <span class="hljs-comment">&lt;!-- ⬅ as query parameters --&gt;</span>
+    &quot;headers&quot;: {
+      &quot;Token&quot;: {{ json-stringify($jwt) }} <span class="hljs-comment">&lt;!-- ⬅ as &#x27;Token&#x27; header --&gt;</span>
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">proxy-request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>If we assume the value of <code>$jwt</code> being <code>{&quot;id&quot;:42,&quot;name&quot;:&quot;John Doe&quot;}</code>, the resulting
+upstream request URL would be <code>https://httpbin.org/get?id=42&amp;name=John%20Doe</code>
+and the request would include a <code>Token</code> header: <code>Token: {&quot;id&quot;:42,&quot;name&quot;:&quot;John Doe&quot;}</code>.</p>
+<p>To just forward the received JWT token upstream as a header, you can also specify
+the desired header name with the <code>out-header</code> property of <code>x-flat-jwt</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTHeaderAuth:</span>
+    <span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span> <span class="hljs-string">…</span>
+      <span class="hljs-attr">out-header:</span> <span class="hljs-string">Token</span> <span class="hljs-comment"># ⬅ forwards this JWT in the &#x27;Token&#x27; header</span>
+</code></pre>
+<p>The <code>headers</code> section in <code>proxy-request</code> is then no longer needed:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">proxy-request</span>&gt;</span>
+  {
+    &quot;url&quot;: &quot;https://httpbin.org/get&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">proxy-request</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Moreover, if you just want to proxy requests, there’s no need to define a <a href="routing.html#assigning-flat-flows">flow</a>
+and you can simply set up your requests using <a href="routing.html#assigning-flat-proxies"><code>x-flat-proxy</code></a>:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTHeaderAuth:</span>
+    <span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span> <span class="hljs-string">…</span>
+      <span class="hljs-attr">out-header:</span> <span class="hljs-string">Token</span> <span class="hljs-comment"># ⬅ forwards the JWT in the &#x27;Token&#x27; header</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/:</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">x-flat-proxy:</span> <span class="hljs-comment"># ⬅ no more x-flat-flow</span>
+        <span class="hljs-attr">url:</span> <span class="hljs-string">https://httpbin.org/get</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTHeaderAuth:</span> []
+</code></pre>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="../../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a> (cookbook)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../../administration/docker.html">Docker</a></li>
+<li><a href="../../administration/configuration.html">Configuration</a></li>
+<li><a href="../../administration/logging.html">Logging</a></li>
+<li><a href="../../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../../reference/actions/README.html">Actions</a></summary><ul><li><a href="../../reference/actions/auth.html">auth</a></li>
+<li><a href="../../reference/actions/copy.html">copy</a></li>
+<li><a href="../../reference/actions/debug.html">debug</a></li>
+<li><a href="../../reference/actions/dump.html">dump</a></li>
+<li><a href="../../reference/actions/echo.html">echo</a></li>
+<li><a href="../../reference/actions/error.html">error</a></li>
+<li><a href="../../reference/actions/eval.html">eval</a></li>
+<li><a href="../../reference/actions/log.html">log</a></li>
+<li><a href="../../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../../reference/actions/regex.html">regex</a></li>
+<li><a href="../../reference/actions/request.html">request</a></li>
+<li><a href="../../reference/actions/requests.html">requests</a></li>
+<li><a href="../../reference/actions/serve.html">serve</a></li>
+<li><a href="../../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../../reference/actions/template.html">template</a></li>
+<li><a href="../../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../../reference/configuration.html">Configuration</a></li>
+<li><a href="../../reference/debugging.html">Debugging</a></li>
+<li><a href="../../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../../reference/functions/README.html">Functions</a></summary><ul><li><a href="../../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../../reference/functions/array.html">array()</a></li>
+<li><a href="../../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../../reference/functions/body.html">body()</a></li>
+<li><a href="../../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../../reference/functions/content.html">content()</a></li>
+<li><a href="../../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../../reference/functions/join.html">join()</a></li>
+<li><a href="../../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../../reference/functions/matches.html">matches()</a></li>
+<li><a href="../../reference/functions/md5.html">md5()</a></li>
+<li><a href="../../reference/functions/replace.html">replace()</a></li>
+<li><a href="../../reference/functions/sort.html">sort()</a></li>
+<li><a href="../../reference/functions/split.html">split()</a></li>
+<li><a href="../../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../../reference/functions/trim.html">trim()</a></li>
+<li><a href="../../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../../reference/testing/README.html">Testing</a></li>
+<li><a href="../../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#the-x-flat-jwt-property">The x-flat-jwt Property</a></li><li><a href="#jwt-in-authorization-header">JWT in Authorization Header</a></li><li><a href="#jwt-in-cookie">JWT in Cookie</a></li><li><a href="#applying-security-schemes">Applying Security Schemes</a></li><li><a href="#full-example">Full Example</a></li><li><a href="#forwarding-jwt-upstream">Forwarding JWT Upstream</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../../assets/minisearch.js"></script>
+        <script src="../../assets/search-index.js"></script>
+        <script src="../../assets/script.js"></script>
+        <script>
+        const baseURI = "../../";
+        selectNavElement("../../reference/openapi/bearer-authentication.html")
+        </script>
+        </body>
+        </html>

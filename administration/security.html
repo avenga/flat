@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Security Notes</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="security-notes">Security Notes<a class="anchor" href="#security-notes"> # </a></h1>
+<p>This page documents selected security vulnerabilities affecting
+<a href="../Licenses.html">components included in FLAT</a>.</p>
+<p>The list is limited to vulnerabilities considered relevant to running FLAT in production.
+Each entry includes an assessment of the vulnerability and its current remediation status.</p>
+<h2 id="flat-2433"><a href="../CHANGELOG.html#2433">FLAT 24.3.3</a><a class="anchor" href="#flat-2433"> # </a></h2>
+<table>
+<thead>
+<tr>
+<th>Vulnerability</th>
+<th>Component</th>
+<th>Version</th>
+<th>Status</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-6021" class="external" target="_blank">CVE-2025-6021</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>63cfc29e1</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-6170" class="external" target="_blank">CVE-2025-6170</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>4c4bf923d</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-7425" class="external" target="_blank">CVE-2025-7425</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>aee85cae1</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-8732" class="external" target="_blank">CVE-2025-8732</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected¹</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-0989" class="external" target="_blank">CVE-2026-0989</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected²</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-0990" class="external" target="_blank">CVE-2026-0990</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected¹</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-0992" class="external" target="_blank">CVE-2026-0992</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected¹</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-6732" class="external" target="_blank">CVE-2026-6732</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>bdc47bbf1</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-11979" class="external" target="_blank">CVE-2026-11979</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected¹</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86137" class="external" target="_blank">CVE-2026-86137</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected³</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86138" class="external" target="_blank">CVE-2026-86138</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected⁴</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86139" class="external" target="_blank">CVE-2026-86139</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>e5110143f</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86140" class="external" target="_blank">CVE-2026-86140</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected⁵</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86141" class="external" target="_blank">CVE-2026-86141</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>not affected⁵</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86142" class="external" target="_blank">CVE-2026-86142</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>4cc4db5b5</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86143" class="external" target="_blank">CVE-2026-86143</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>ba58f0b3b</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-86144" class="external" target="_blank">CVE-2026-86144</a></td>
+<td>libxml2</td>
+<td>2.13.9</td>
+<td>fixed</td>
+<td>949b9545b</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-7424" class="external" target="_blank">CVE-2025-7424</a></td>
+<td>libxslt</td>
+<td>1.1.43</td>
+<td>fixed</td>
+<td>0d8e8159d</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-7425" class="external" target="_blank">CVE-2025-7425</a></td>
+<td>libxslt</td>
+<td>1.1.43</td>
+<td>fixed</td>
+<td>aee85cae1</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-10911" class="external" target="_blank">CVE-2025-10911</a></td>
+<td>libxslt</td>
+<td>1.1.43</td>
+<td>fixed</td>
+<td>4ca8948b8</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2025-11731" class="external" target="_blank">CVE-2025-11731</a></td>
+<td>libxslt</td>
+<td>1.1.43</td>
+<td>fixed</td>
+<td>b3ada4c65</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-18924" class="external" target="_blank">CVE-2026-18924</a></td>
+<td>libcurl</td>
+<td>8.5.0</td>
+<td>not affected⁶</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-19931" class="external" target="_blank">CVE-2026-19931</a></td>
+<td>libcurl</td>
+<td>8.5.0</td>
+<td>not affected⁷</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-82209" class="external" target="_blank">CVE-2026-82209</a></td>
+<td>libcurl</td>
+<td>8.5.0</td>
+<td>not affected⁸</td>
+<td>–</td>
+</tr>
+<tr>
+<td><a href="https://app.opencve.io/cve/CVE-2026-80230" class="external" target="_blank">CVE-2026-80230</a></td>
+<td>libcurl</td>
+<td>8.5.0</td>
+<td>not affected⁹</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<p>¹ XML catalog code is included, but not executed. <br>
+² RelaxNG code is included, but not executed. <br>
+³ XSD or DTD validation code is included, but not executed. <br>
+⁴ XML string lengths are limited via <a href="configuration.html#general"><code>$FLAT_MAX_PARSE_SIZE</code> environment variable</a>. <br>
+⁵ Schematron support is disabled at build time, the code ist not present. <br>
+⁶ HTTP/2 server push is not supported, code is not executed. <br>
+⁷ Negotiate authentication is not supported, code is not executed. <br>
+⁸ Public suffix lists are not supported, code is not executed. <br>
+⁹ Pinned public keys are not supported, code is not executed.</p>
+<!-- ⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹ -->
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#flat-2433">FLAT 24.3.3</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../administration/security.html")
+        </script>
+        </body>
+        </html>

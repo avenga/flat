@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Testing with Backend Requests</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="testing-with-backend-requests">Testing with Backend Requests<a class="anchor" href="#testing-with-backend-requests"> # </a></h1>
+<p>Usually, our <a href="../reference/flow.html">flows</a> contain <a href="../reference/actions/request.html"><em>upstream requests</em></a> to one or more backends that we use to provide the client response. Sometimes upstream requests use results of other upstream requests. Testing such flows can be a challenge.</p>
+<p>In this example flow, we use the helpful tool <a href="https://httpbin.org/" class="external" target="_blank">httpbin.org</a> to reflect a parameter.</p>
+<p>The Swagger snippet is</p>
+<pre><code class="language-yaml"><span class="hljs-attr">basePath:</span> <span class="hljs-string">/api</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/dashboard:</span>
+    <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">dashboard.xml</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">count</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">query</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">number</span> <span class="hljs-string">of</span> <span class="hljs-string">notifications</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">number</span>
+</code></pre>
+<p>and the flow in <code>dashboard.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">request</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;notifications&quot;</span>&gt;</span>
+   {
+    &quot;url&quot;: &quot;https://httpbin.org/anything&quot;,
+    &quot;headers&quot;: {
+      &quot;accept&quot;: &quot;application/json&quot;
+    },
+    &quot;query&quot;: {
+      &quot;noti&quot;: {{ $request/get/count ?? 1 }}
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">break</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;$upstream/*/error&quot;</span> /&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {{$rsp := content(&quot;notifications&quot;)/json }}
+    {
+      &quot;sites&quot;: [],
+      &quot;notifications&quot;: {{ number($rsp/args/noti) ?? 2 }}
+    }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>We use the client’s <code>count=</code> parameter (or <code>1</code> if missing) to send it as <code>noti=</code> to <code>httpbin.org</code>.</p>
+<p>A response for that upstream request could look like this:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;args&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;noti&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;8&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;headers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;Accept&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;*/*&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;Host&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;httpbin.org&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;User-Agent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;curl/7.54.0&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;GET&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://httpbin.org/anything?noti=8&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>The parameter is reflected back in the JSON responses <code>args</code> property. That is what we use in the response template, where it is finally called <code>notifications</code>.</p>
+<h2 id="mocking-the-backend">Mocking the Backend<a class="anchor" href="#mocking-the-backend"> # </a></h2>
+<p>A naïve approach to writing a <a href="../reference/testing/README.html">FLAT test</a> would be a <code>test-request</code> with some assertions.</p>
+<p><code>tests/test-notifications.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">test-request</span>&gt;</span>
+  {
+    &quot;path&quot;: &quot;/api/dashboard&quot;,
+    &quot;query&quot;: {
+      &quot;count&quot;: 5
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">test-request</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+  [
+    [ &quot;json-parse($response)/notifications&quot;, 5 ]
+  ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p>This actually works. However, our flow in fact sends the upstream request to <code>httpbin.org</code>. The test will fail if their server is down. And if we were mocking a single-sign-on service, we would need real credentials. That’s not how we like our automated tests to work.</p>
+<p>A <a href="../reference/actions/backend-flow.html"><code>backend-flow</code> test action</a> allows us to create a fake response for the upstream requests. We can use regular <a href="../reference/actions/README.html">actions</a> to set headers, status code, response bodies and so on.</p>
+<p>We extend our <code>flat-test</code> with this <code>backend-flow</code> call as its first action:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">backend-flow</span> <span class="hljs-attr">request</span>=<span class="hljs-string">&quot;notifications&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {
+      &quot;args&quot;: {
+        &quot;noti&quot;: 5
+      }
+    }
+    <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">backend-flow</span>&gt;</span>
+  …
+</code></pre>
+<p>Note that the <code>backend-flow</code> action only <em>registers</em> that flow for subsequent <code>request</code> actions. That’s why we have to put it first.</p>
+<p>You can register multiple backend flows for your requests. Upstream requests and flows are matched using their <code>request</code> ID. In our case, <code>notifications</code>.</p>
+<p>💡If your mock response is a bit longer than ours here, you can store it in a separate file and use <a href="../reference/actions/copy.html"><code>copy</code></a> instead:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">backend-flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">copy</span> <span class="hljs-attr">in</span>=<span class="hljs-string">&quot;mock.json&quot;</span> /&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">backend-flow</span>&gt;</span>
+</code></pre>
+<h2 id="asserting-upstream-requests">Asserting Upstream Requests<a class="anchor" href="#asserting-upstream-requests"> # </a></h2>
+<p>Injecting a mocked response into your flow only allows to test one direction: downstream. How do we test that our flow has sent the right parameters to the upstream server?</p>
+<p>You can use <code>assert</code> in <code>backend-flow</code>, too:</p>
+<pre><code class="language-xml">  <span class="hljs-tag">&lt;<span class="hljs-name">backend-flow</span> <span class="hljs-attr">request</span>=<span class="hljs-string">&quot;notifications&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+    [
+      [ &quot;$request/get/noti&quot;, 5 ]
+    ]
+    <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+    {
+      &quot;args&quot;: {
+        &quot;noti&quot;: 5
+      }
+    }
+    <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">backend-flow</span>&gt;</span>
+</code></pre>
+<p>This test will fail if we don’t pass the <code>count</code> parameter as expected.</p>
+<p>For this assertion we have made use of the <a href="../reference/variables.html#predefined-variables">predefined variable <code>$request</code></a>. You can use <code>$body</code> to inspect the upstream request body. These variables are overridden in backend flows and restored afterwards. All other global variables are shared between flow, backend flow and test flow! This allows for dynamic backend mocks and more assertion possibilities.</p>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="test-api-request.html">Testing API Requests</a> (cookbook)</li>
+<li><a href="test-templates.html">Testing Templates</a> (cookbook)</li>
+<li><a href="../reference/testing/README.html">Test Framework</a> (reference)</li>
+<li><a href="../reference/actions/assert.html"><code>assert</code></a> (reference)</li>
+<li><a href="../reference/actions/backend-flow.html"><code>backend-flow</code></a> (reference)</li>
+<li><a href="../reference/actions/test-request.html"><code>test-request</code></a> (reference)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#mocking-the-backend">Mocking the Backend</a></li><li><a href="#asserting-upstream-requests">Asserting Upstream Requests</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/test-backend.html")
+        </script>
+        </body>
+        </html>

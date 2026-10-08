@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Logging</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="logging">Logging<a class="anchor" href="#logging"> # </a></h1>
+<p>FLAT Server writes most of its logs in JSON format to the standard error output (<em>stderr</em>). One line is written for each event. I.e. one line each for a client request, an upstream request or an error.</p>
+<p>For comfortable log processing, events are discriminated with the <code>type</code> field that is one of</p>
+<ul>
+<li><code>apache_access</code></li>
+<li><code>php_access</code></li>
+<li><code>flat_access</code></li>
+<li><code>flat_request</code></li>
+<li><code>flat_alert</code></li>
+<li><code>fpmstats</code></li>
+</ul>
+<p>The access log can be augmented with <a href="../cookbook/custom-logging.html">custom fields</a>.</p>
+<p>All JSON log lines have a <code>requestID</code> field. Its value can be used to correlate log events.</p>
+<h2 id="flat-access-log">FLAT Access Log<a class="anchor" href="#flat-access-log"> # </a></h2>
+<p>Client requests received by FLAT are recorded as type <code>flat_access</code> and have the following format:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2019-10-15T13:28:26+00:00&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;flat_access&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestID&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XaXJeWA-@B@3XFNhk42H@QAAAAQ&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://localhost:8080/api/path&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/api/path&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;GET&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;agent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;curl/7.54.0&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;referrer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/json&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;realtime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.019845</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">563</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestbytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;flow&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;flow.xml&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestmime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;location&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>timestamp</code>: Start time of the request in ISO 8601 format</li>
+<li><code>type</code>: Event type discriminator, fixed string <code>flat_access</code></li>
+<li><code>requestID</code>: Log Correlation ID, accessible in flows as <a href="../reference/variables.html#predefined-variables"><code>$request/id</code></a> and <a href="../reference/variables.html#error"><code>$error/requestID</code></a></li>
+<li><code>url</code>: client request URL</li>
+<li><code>path</code>: path, query string and fragment of the client request URL</li>
+<li><code>status</code>: HTTP status code of the client response (number) (<code>200</code>, <code>404</code>, <code>500</code>, …)</li>
+<li><code>method</code>: HTTP method of the client request (<code>GET</code>, <code>POST</code>, …)</li>
+<li><code>agent</code>: <code>User-Agent</code> header of the client request</li>
+<li><code>referrer</code>: <code>Referer</code> [sic] header of the client request</li>
+<li><code>mime</code>: <code>Content-Type</code> header of the client response (<code>text/html</code>, <code>application/json</code>…)</li>
+<li><code>realtime</code>: request duration in seconds (number)</li>
+<li><code>bytes</code>: uncompressed size of the outgoing response body (number)</li>
+<li><code>requestbytes</code>: uncompressed size of the incoming request body (number)</li>
+<li><code>flow</code>: filename of the applied <a href="../reference/openapi/routing.html#assigning-flat-flows">flow</a></li>
+<li><code>requestmime</code>: <code>Content-Type</code> header of the client request i.e. MIME type of the incoming request body</li>
+<li><code>location</code>: <code>Location</code> header of the client response</li>
+</ul>
+<h2 id="request-log">Request Log<a class="anchor" href="#request-log"> # </a></h2>
+<p>Outgoing <a href="../reference/actions/request.html">requests</a> to upstream APIs are recorded as type <code>flat_request</code> and have the following format:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2019-10-15T13:28:26+00:00&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;flat_request&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestID&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XaXJeWA-@B@3XFNhk42H@QAAAAQ&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://example.com/?foo=bar&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;get&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/json&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">231</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;duration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.607165</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;main.0&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;cacheHit&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;refresh&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;timing&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;DNS&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;17.391&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;TCP&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;96.475&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;TTFB&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;623.931&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;curlErrorCode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">28</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;curlErrorMessage&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Operation timed out after 3000 milliseconds with 0 out of -1 bytes received&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>timestamp</code>: Start time of the request in ISO 8601 format</li>
+<li><code>type</code>: Event type discriminator, fixed string <code>flat_request</code></li>
+<li><code>requestID</code>: Log Correlation ID</li>
+<li><code>url</code>: Absolute URL of the upstream request including query-string</li>
+<li><code>method</code>: HTTP method of the upstream request (<code>GET</code>, <code>POST</code>, …)</li>
+<li><code>status</code>: HTTP status code of the upstream response (number) (<code>0</code> for failed requests)</li>
+<li><code>mime</code>: <code>Content-Type</code> header of the upstream response (<code>text/html</code>, <code>application/json</code>…)</li>
+<li><code>bytes</code>: Size of the (possibly compressed) response body in bytes (number) (<code>0</code> if the body is empty; when read from the internal cache, the original response length is used)</li>
+<li><code>duration</code>: Time spent waiting for the response in seconds (number)</li>
+<li><code>id</code>: Request/Content identifier as configured with the request’s <a href="../reference/actions/request.html#id"><code>id</code> field</a> or <code>content</code> attribute (suffixed with <code>.N</code> where <code>N</code> is incremented for each followed redirect starting with <code>0</code>)</li>
+<li><code>cacheHit</code>: Indicating whether the response was read from FLAT’s HTTP Cache (boolean) (activated with request option <a href="../reference/actions/request.html#options"><code>use-http-cache</code></a>)</li>
+<li><code>refresh</code>: Indicating whether the response was a <code>304</code> response to a request revalidating the local cache (boolean)</li>
+<li><code>timing</code>: Contains timing information about request phases
+<ul>
+<li><code>DNS</code>: Time to perform name lookup in <code>ms</code> (string¹)</li>
+<li><code>TCP</code>: Time to establish a TCP connection in <code>ms</code> (string¹), may be near zero for keep-alive requests</li>
+<li><code>TTFB</code>: Time to first byte in <code>ms</code> since request was sent (string¹)</li>
+</ul>
+</li>
+<li><code>curlErrorCode</code>: <a href="https://curl.se/libcurl/c/libcurl-errors.html" class="external" target="_blank">curl error code</a> for failed requests (number, optional) (e.g. <code>28</code>)</li>
+<li><code>curlErrorMessage</code>: Text error message of <em>libcurl</em> for failed requests (optional)</li>
+</ul>
+<p>¹ a string representing a decimal number formatted as <code>&quot;x.xxx&quot;</code> (see example above)</p>
+<h2 id="error-log">Error Log<a class="anchor" href="#error-log"> # </a></h2>
+<p>Errors that have occurred during processing, such as <a href="../reference/openapi/validation.html">Validation Errors</a> are recorded as type <code>flat_alert</code>.</p>
+<p>These log events should be monitored!</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2019-10-15T13:28:26+00:00&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;flat_alert&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestID&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XaXJeWA-@B@3XFNhk42H@QAAAAQ&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;topic&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;validation&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;message&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Response validation failed: Type constraint violated in body: String value found, but an object is required. &quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>timestamp</code>: Start time of the request in ISO 8601 format</li>
+<li><code>type</code>: Event type discriminator, fixed string <code>flat_alert</code></li>
+<li><code>requestID</code>: Log Correlation ID</li>
+<li><code>topic</code>: Log topic of the alert, corresponds to <a href="../reference/debugging.html">debugging topics</a></li>
+<li><code>message</code>: An informative error message</li>
+</ul>
+<h2 id="php-access-log">PHP Access Log<a class="anchor" href="#php-access-log"> # </a></h2>
+<p>Additional information is recorded in separate lines with the <code>php_access</code> format:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;php_access&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XaXJeWA-@B@3XFNhk42H@QAAAAQ&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;uri&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/api/v1/version&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1715797252</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;project&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;_default&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;GET&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">81</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;usertime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;systemtime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;realtime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">8.222</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;fitrequesttime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;fitrequestvolume&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;req&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;sub&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;200&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/json&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>type</code>: event type discriminator, fixed string <code>php_access</code></li>
+<li><code>requestid</code>: log correlation id</li>
+<li><code>url</code>: absolute URL of the upstream request without the query-string</li>
+<li><code>query</code>: query-string of the request</li>
+<li><code>timestamp</code>: start time of the request as a unix timestamp</li>
+<li><code>project</code>: <code>_default</code> for regular requests. Internal services, such as liveness checks via <code>/test.fit</code> (<code>livenesscheck</code>) or statistics collection by <code>phpstats</code> (<code>-</code>) use different identifiers.</li>
+<li><code>method</code>: http method of the upstream request (<code>get</code>, <code>post</code>, …)</li>
+<li><code>status</code>: http status code of the upstream response (number) (<code>0</code> for failed requests)</li>
+<li><code>usertime</code>: CPU time spent in the user land processing the request</li>
+<li><code>systemtime</code>: CPU time spent in the systme code while processing the request</li>
+<li><code>realtime</code>:  Overall wall clock time that passed while processing the request</li>
+<li><code>requesttime</code>: Overall wall clock time that was spent waiting for upstream requests</li>
+<li><code>requestvolume</code>: the sum of sizes of all responses received for upstream requests</li>
+<li><code>status</code>: HTTP status code of the client response (number) (<code>200</code>, <code>404</code>, <code>500</code>, …)</li>
+<li><code>mime</code>: <code>Content-Type</code> header of the client response (<code>text/html</code>, <code>application/json</code>…)</li>
+</ul>
+<h2 id="httpd-access-log">httpd Access Log<a class="anchor" href="#httpd-access-log"> # </a></h2>
+<p>Client requests received by the Apache httpd included in FLAT are recorded as type <code>apache_access</code>. By default, they are written to <code>/dev/stderr</code>, and they can be disabled by setting <code>CUSTOMLOG=/dev/null</code>. They have the following format:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2024-05-15T14:36:09+00:00&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apache_access&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;remoteIp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;172.28.1.170&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;domain&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;example.com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;port&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">80</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;user&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;servertime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1714739569.207</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;requestID&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;XaXJeWA-@B@3XFNhk42H@QAAAAQ&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;?foo=bar&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;200&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;GET&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">231</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;agent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;curl/7.54.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;referrer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;Forw&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10.2.79.104, 80.187.123.220, 64.252.89.191&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;Via&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;Accept&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;*/*&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;host&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;example.com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;Location&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;XRW&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;realtime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">5616</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;project&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;_default&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>type</code>: Event type discriminator, fixed string <code>apache_access</code></li>
+<li><code>remoteIp</code>: IP address of the peer that initiated the request</li>
+<li><code>domain</code>: The canonical ServerName of the server that served the request</li>
+<li><code>port</code>: The listening port of the server that served the request</li>
+<li><code>user</code>: The name of the user if the request was authenticated</li>
+<li><code>servertime</code>: Start time of the request as a unix timestamp including fractional seconds</li>
+<li><code>requestID</code>: Log Correlation ID</li>
+<li><code>path</code>: path component of the request URL</li>
+<li><code>query</code>: query component of the request URL</li>
+<li><code>status</code>: HTTP status code of the client response (number) (<code>200</code>, <code>404</code>, <code>500</code>, …)</li>
+<li><code>method</code>: HTTP method of the client request (<code>GET</code>, <code>POST</code>, …)</li>
+<li><code>bytes</code>: potentially compressed size of the outgoing response body (number)</li>
+<li><code>agent</code>: <code>User-Agent</code> header of the client request</li>
+<li><code>referrer</code>: <code>Referer</code> [sic] header of the client request</li>
+<li><code>Forw</code>: <code>X-Forwarded-For</code> header of the client request</li>
+<li><code>Via</code>: <code>Via</code> header of the client request</li>
+<li><code>Accept</code>: <code>Accept</code> header of the client request</li>
+<li><code>XRW</code>: <code>X-Requested-With</code> header of the client request</li>
+<li><code>host</code>: <code>Host</code> header of the client request</li>
+<li><code>Location</code>: <code>Location</code> header of the client response</li>
+<li><code>realtime</code>: request duration in microseconds (number)</li>
+<li><code>project</code>: <code>_default</code> for regular requests. Internal services, such as liveness checks via <code>/test.fit</code> (<code>livenesscheck</code>) or statistics collection by phpstats (<code>-</code>) use different identifiers.</li>
+</ul>
+<h2 id="other-log-events">Other Log Events<a class="anchor" href="#other-log-events"> # </a></h2>
+<p>In rare cases plain text log lines may be written to <em>stdout</em> or <em>stderr</em>. For example, this happens during startup.</p>
+<p>These lines are usually <em>error log</em> messages of the included <a href="https://httpd.apache.org" class="external" target="_blank">Apache Web server</a> that look like this:</p>
+<pre><code>[Tue Oct 15 13:11:30.190335 2019] [mpm_worker:notice] [pid 28:tid 139763282708608] - AH00292: Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips configured -- resuming normal operations
+</code></pre>
+<h2 id="phpstats-log">phpstats Log<a class="anchor" href="#phpstats-log"> # </a></h2>
+<p>If you chose to run the optional <a href="docker.html"><code>phpstats</code> container</a>, it will provide real time information regarding the utilization of the <code>php-fpm</code> process. This
+can be used to tune the <a href="configuration.html">PHP-FPM configuration</a> or feed a custom metric to your autoscaler.</p>
+<h3 id="fields">Fields<a class="anchor" href="#fields"> # </a></h3>
+<ul>
+<li><code>timestamp</code>: Timestamp in Unixtime</li>
+<li><code>type</code>: Event type discriminator, fixed string <code>fpmstats</code></li>
+<li><code>listen_queue</code>: Number of requests currently waiting to be processed</li>
+<li><code>idle_processes</code>: Number of php-fpm processes that are available to process requests</li>
+<li><code>active_processes</code>: Number of php-fpm processes that are currently processing requests</li>
+<li><code>total_processes</code>: Number of php-fpm processes that are currently running</li>
+<li><code>slow_requests</code>: The total number of requests that took excessively long to process</li>
+</ul>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;fpmstats&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;timestamp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1714732438</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;listen_queue&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;idle_processes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">6</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;active_processes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;total_processes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">10</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;slow_requests&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="../cookbook/custom-logging.html">Custom Logging</a> (Cookbook)</li>
+<li><a href="../reference/actions/log.html"><code>log</code> action</a> (Reference)</li>
+<li><a href="../reference/functions/get-log.html"><code>get-log()</code> function</a> (Reference)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#flat-access-log">FLAT Access Log</a></li><li><a href="#request-log">Request Log</a></li><li><a href="#error-log">Error Log</a></li><li><a href="#php-access-log">PHP Access Log</a></li><li><a href="#httpd-access-log">httpd Access Log</a></li><li><a href="#other-log-events">Other Log Events</a></li><li><a href="#phpstats-log">phpstats Log</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../administration/logging.html")
+        </script>
+        </body>
+        </html>

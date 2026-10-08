@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Testing Templates</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="testing-templates">Testing Templates<a class="anchor" href="#testing-templates"> # </a></h1>
+<p>You have written a <a href="../reference/templating/README.html">JSON Template</a> and now you want to test it. FLAT comes with a <a href="../reference/testing/README.html">Test Framework</a> that makes it easy to execute your code with various input and error conditions.</p>
+<h2 id="our-test-specimen">Our Test Specimen<a class="anchor" href="#our-test-specimen"> # </a></h2>
+<p>Let’s write a simple template that outputs some information on the incoming request. (You have to register it in your <a href="../reference/openapi/routing.html"><code>swagger.yaml</code></a>, we assume it is stored as <code>api/request-info.xml</code>).</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+  {
+    &quot;method&quot;: {{ $request/method }},
+    &quot;path&quot;: {{ $request/path }},
+    &quot;numPostFields&quot;: {{ count($request/post/*) }},
+    {{if $request/get/data }}
+      &quot;data&quot;: {{ $request/get/data }}
+    {{end}}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Looks easy. Let’s try it out:</p>
+<pre><code class="language-bash">$ curl -s -d <span class="hljs-string">&#x27;a=b&amp;c=d&#x27;</span> localhost:8080/api/path?data=foo |jq
+</code></pre>
+<p>The result is:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;POST&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/api/path&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;numPostFields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>So far, so good. If you look closely, you will notice that the template is buggy. But we will bump into this when writing tests for it :)</p>
+<h2 id="writing-a-test">Writing a Test<a class="anchor" href="#writing-a-test"> # </a></h2>
+<p>In FLAT, tests are written in <code>&lt;flat-test&gt;</code> XML files. Those tests work like regular <a href="../reference/flow.html">flows</a>, but they provide specialized <a href="../reference/actions/README.html#test-actions">actions</a> to make testing easy.</p>
+<p>Usually, tests should run in the context of the FLAT app. Therefore, we recommend putting tests in a <code>tests/</code> folder next to the <code>swagger.yaml</code>:</p>
+<pre><code class="language-bash">$ <span class="hljs-built_in">ls</span> my-project
+swagger.yaml
+api/
+htdocs/
+tests/
+</code></pre>
+<p>A test usually comprises</p>
+<ul>
+<li>the flow code under test</li>
+<li>setup code to provide input/environment data</li>
+<li><a href="../reference/actions/assert.html">assertions</a></li>
+</ul>
+<p>Create <code>tests/test-request-tpl.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- setup input data --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$request&quot;</span>&gt;</span>
+  {
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/a/path&quot;,
+    &quot;post&quot;: {
+      &quot;a&quot;: 1,
+      &quot;b&quot;: 2,
+      &quot;c&quot;: 3
+    },
+    &quot;get&quot;: {
+      &quot;data&quot;: &quot;foo&quot;
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- code under test --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$result&quot;</span>&gt;</span>
+  {
+    &quot;method&quot;: {{ $request/method }},
+    &quot;path&quot;: {{ $request/path }},
+    &quot;numPostFields&quot;: {{ count($request/post/*) }},
+    {{if $request/get/data }}
+      &quot;data&quot;: {{ $request/get/data }}
+    {{end}}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- assertions --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+  [
+    [ &quot;json-stringify($result)&quot;, &quot;{\&quot;method\&quot;:\&quot;POST\&quot;,\&quot;path\&quot;:\&quot;/a/path\&quot;,\&quot;numPostFields\&quot;:3,\&quot;data\&quot;:\&quot;foo\&quot;}&quot; ]
+  ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p>The FLAT container comes with a <code>flat-test</code> command to run tests. It it easiest to run it from  inside the FLAT app dir (where <code>swagger.yaml</code> resides).</p>
+<pre><code class="language-bash">$ docker <span class="hljs-built_in">exec</span> flat flat-test tests/test-request-tpl.xml
+1..1
+ok 1 tests/test-request-tpl.xml: 1 assertions
+passed: 1, failed: 0
+</code></pre>
+<p>Great! But there’s still room for improvement…</p>
+<h2 id="refactor-for-testing">Refactor for Testing<a class="anchor" href="#refactor-for-testing"> # </a></h2>
+<p>In the test, we had to <em>copy</em> the template from our production code. This doesn’t really make sense. Because, now we test an isolated copy. If we break the actual flow, the test will still pass.</p>
+<p>There are a couple of options to go about this.</p>
+<p>We could extract the template body into a file:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;request.tpl&quot;</span> /&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>Now, in the test, we only repeat that action call:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  …
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;../api/request.tpl&quot;</span> /&gt;</span>
+  …
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p>Note, that we provide a different <code>src</code> attribute, because the relative path to the template differs for the flow and the test file.</p>
+<p>Another approach is to extract the template code into a <a href="../reference/actions/sub-flow.html">sub flow</a>. This can be called both by the path flow and the test:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  …
+  <span class="hljs-tag">&lt;<span class="hljs-name">sub-flow</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;../api/request-info.xml&quot;</span> /&gt;</span>
+  …
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p>This looks much better! We now test the <em>real</em> template call.</p>
+<p>However, that call did not specify an <code>out</code> variable. To catch that template output in the test, we use the <a href="../reference/functions/content.html"><code>content()</code></a> function:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+[
+  [ &quot;json-stringify(content())&quot;, &quot;{\&quot;method\&quot;:\&quot;POST\&quot;,\&quot;path\&quot;:\&quot;/a/path\&quot;,\&quot;numPostFields\&quot;:3,\&quot;data\&quot;:\&quot;foo\&quot;}&quot; ]
+]
+<span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+</code></pre>
+<h2 id="json-file-comparisons">JSON File Comparisons<a class="anchor" href="#json-file-comparisons"> # </a></h2>
+<p>But we can also make the assertion part of tests look better. For the beginning we were explicitly using <code>json-stringify()</code> to turn <code>$result</code> into a string. And even worse, that string had to be compared to a clunky, escaped JSON string.</p>
+<p>The comparison parameter (2nd field of assertions) can also be an object with special flags. We can instruct <code>assert</code> to read the comparison value from a file:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+[
+  [ &quot;json-stringify($response)&quot;, {&quot;file&quot;: &quot;request-info.golden&quot;} ]
+]
+<span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+</code></pre>
+<p>Now we can put the expected JSON string into the <em>golden file</em> <code>tests/request-info.golden</code>:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;POST&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;/a/path&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;numPostFields&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-number">3</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;foo&quot;</span><span class="hljs-punctuation">}</span>
+</code></pre>
+<p>We can still simplify that by using the <code>json</code> comparison mode:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+[
+  [ &quot;$response&quot;, {&quot;file&quot;: &quot;request-info.golden&quot;, &quot;mode&quot;: &quot;json&quot;} ]
+]
+<span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+</code></pre>
+<p>The <code>json</code> mode ensures that both wanted and actual results are valid JSON. The comparison is independent of the JSON formatting. This allows us the have the golden file pretty printed:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;POST&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/a/path&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;numPostFields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>This makes changes to the file easier during development. Especially your co-workers will thank you for a readable git diff.</p>
+<h2 id="full-example">Full Example<a class="anchor" href="#full-example"> # </a></h2>
+<p><code>api/request-info.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span>
+  {
+    &quot;method&quot;: {{ $request/method }},
+    &quot;path&quot;: {{ $request/path }},
+    &quot;numPostFields&quot;: {{ count($request/post/*) }},
+    {{if $request/get/data }}
+      &quot;data&quot;: {{ $request/get/data }}
+    {{end}}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p><code>tests/test-request-tpl.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- setup input data --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$request&quot;</span>&gt;</span>
+  {
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/a/path&quot;,
+    &quot;post&quot;: {
+      &quot;a&quot;: 1,
+      &quot;b&quot;: 2,
+      &quot;c&quot;: 3
+    },
+    &quot;get&quot;: {
+      &quot;data&quot;: &quot;foo&quot;
+    }
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- code under test --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">sub-flow</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;../request-info.xml&quot;</span> /&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+  [
+    [ &quot;content()&quot;, {&quot;file&quot;: &quot;request-info.golden&quot;, &quot;mode&quot;: &quot;json&quot;} ]
+  ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p><code>tests/request-info.golden</code>:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;POST&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/a/path&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;numPostFields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Call test:</p>
+<pre><code class="language-bash">$ docker <span class="hljs-built_in">exec</span> flat flat-test tests/test-request-tpl.xml
+1..1
+ok 1 tests/test-request-tpl.xml: 1 assertions
+passed: 1, failed: 0
+</code></pre>
+<h2 id="adding-more-tests">Adding More Tests<a class="anchor" href="#adding-more-tests"> # </a></h2>
+<p>So far, we have only tested one specific input. Let’s provide another test with different input data, such as a <code>GET</code> request or one without the <code>data</code> query parameter. This will reveal a serious bug in our code!</p>
+<p>You can copy the test to another file for the <code>GET</code> case. If you think those variants are closely related, you can also add more test code after the <code>&lt;assert&gt;</code> in our <code>tests/test-request-tpl.xml</code> like this:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- test case from above --&gt;</span>
+  …
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+
+  <span class="hljs-comment">&lt;!-- test GET --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$request&quot;</span>&gt;</span>
+  {
+    &quot;method&quot;: &quot;GET&quot;,
+    &quot;path&quot;: &quot;/&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">sub-flow</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;../request-info.xml&quot;</span> /&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>[[ &quot;content()&quot;, {&quot;file&quot;: &quot;request-info2.golden&quot;, &quot;mode&quot;: &quot;json&quot;} ]]<span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p><code>tests/request-info2.golden</code> could look like this:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;GET&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;numPostFields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>What happens, when we call the <code>flat-test</code> command now?</p>
+<p>We get an execution error! If we have <a href="../reference/debugging.html">debugging enabled</a> we can see:</p>
+<pre><code>Action &quot;template&quot;: Output is not valid JSON: Syntax error
+</code></pre>
+<p>📝 <strong>Exercise:</strong> Fix that bug in the template!</p>
+<p>💡 Hint: The number one reason for invalid JSON syntax are <a href="../reference/templating/comma.html">commas</a>.</p>
+<p>After we have fixed the bug in the template, the test result should look like this:</p>
+<pre><code class="language-bash">$ docker <span class="hljs-built_in">exec</span> flat flat-test tests/test-request-tpl.xml
+1..1
+ok 1 tests/test-request-tpl.xml: 2 assertions
+passed: 1, failed: 0
+</code></pre>
+<p>💡 Hint: You can call <code>flat-test</code> with multiple files:</p>
+<pre><code class="language-bash">$ docker <span class="hljs-built_in">exec</span> flat flat-test tests/test-*.xml
+1..2
+ok 1 tests/test-request-tpl.xml: 1 assertions
+ok 2 tests/test-request-tpl-get.xml: 1 assertions
+passed: 2, failed: 0
+</code></pre>
+<h2 id="using-other-compare-flags">Using Other Compare Flags<a class="anchor" href="#using-other-compare-flags"> # </a></h2>
+<p>You can use more compare flags for your tests.</p>
+<p>The <code>contains</code> flag can be used to test whether an expression result contains a given string:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flat-test</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> <span class="hljs-attr">out</span>=<span class="hljs-string">&quot;$request&quot;</span>&gt;</span>
+  {
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/a/path#&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+  [
+    [ &quot;$request/path&quot;, {&quot;contains&quot;: &quot;a/&quot;} ]
+  ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flat-test</span>&gt;</span>
+</code></pre>
+<p>This assertion tests whether the <code>path</code> property of <code>$request</code> contains the string “a/”.</p>
+<p>The <code>pattern</code> flag can be used to test whether an expression result matches a given regular expression:</p>
+<pre><code class="language-xml">  <span class="hljs-tag">&lt;<span class="hljs-name">assert</span>&gt;</span>
+  [
+    [ &quot;$request/method&quot;, {&quot;pattern&quot;: &quot;#^post$#i&quot;} ]
+  ]
+  <span class="hljs-tag">&lt;/<span class="hljs-name">assert</span>&gt;</span>
+</code></pre>
+<p>This assertion tests whether the <code>method</code> property of <code>$request</code> matches case-insensitively the string “post”.</p>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="test-api-request.html">Testing API Requests</a> (cookbook)</li>
+<li><a href="test-backend.html">Testing Upstream Requests</a> (cookbook)</li>
+<li><a href="../reference/testing/README.html">Testing</a> (reference)</li>
+<li><a href="../reference/actions/assert.html"><code>assert</code></a> (reference)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#our-test-specimen">Our Test Specimen</a></li><li><a href="#writing-a-test">Writing a Test</a></li><li><a href="#refactor-for-testing">Refactor for Testing</a></li><li><a href="#json-file-comparisons">JSON File Comparisons</a></li><li><a href="#full-example">Full Example</a></li><li><a href="#adding-more-tests">Adding More Tests</a></li><li><a href="#using-other-compare-flags">Using Other Compare Flags</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/test-templates.html")
+        </script>
+        </body>
+        </html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Changelog</title>
+        <link rel="stylesheet" href="assets/highlightjs.css">
+        <link rel="stylesheet" href="assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="changelog">Changelog<a class="anchor" href="#changelog"> # </a></h1>
+<h2 id="2433"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.3.3" class="external" target="_blank">24.3.3</a><a class="anchor" href="#2433"> # </a></h2>
+<p>2026-09-22</p>
+<p>⚠️ Security release (stable)</p>
+<p><strong>FLAT 24.3.3</strong> is a security release addressing vulnerabilities found in libxml2, libxslt, Symfony/YAML
+and the Ubuntu 24.04 base image, notably in libcurl and Apache.
+We encourage all users to update to this release.</p>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li>Documentation: <a href="administration/security.html">Security Notes</a> about known vulnerabilities</li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.33" class="external" target="_blank">PHP 8.3.33</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.9" class="external" target="_blank">libxml2 2.13.9</a>: backported security fixes for
+<a href="administration/security.html"><strong>CVE-2025-10911</strong></a>,
+<a href="administration/security.html"><strong>CVE-2026-86139</strong></a>,
+<a href="administration/security.html"><strong>CVE-2026-86142</strong></a>,
+<a href="administration/security.html"><strong>CVE-2026-86143</strong></a>,
+<a href="administration/security.html"><strong>CVE-2026-86144</strong></a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.43" class="external" target="_blank">libxslt 1.1.43</a>: backported security fixes for
+<a href="administration/security.html"><strong>CVE-2025-7424</strong></a>,
+<a href="administration/security.html"><strong>CVE-2025-10911</strong></a>,
+<a href="administration/security.html"><strong>CVE-2025-11731</strong></a></li>
+<li><a href="https://packagist.org/packages/symfony/yaml#v7.4.18" class="external" target="_blank">Symfony Yaml 7.4.18</a>: <strong>CVE-2026-45304</strong>, <strong>CVE-2026-45305</strong>, <strong>CVE-2026-45133</strong></li>
+<li>libcurl: <strong>CVE-2026-8932</strong></li>
+<li>Apache: <strong>CVE-2026-43951</strong></li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li>PHP extensions not required for production operation: <code>pcntl</code>, <code>pcov</code>, <code>phar</code>, <code>posix</code>, <code>tokenizer</code>, <code>xml</code></li>
+</ul>
+<hr>
+<h2 id="2432"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.3.2" class="external" target="_blank">24.3.2</a><a class="anchor" href="#2432"> # </a></h2>
+<p>2026-06-17</p>
+<p>⚠️ Security release (stable)</p>
+<p><strong>FLAT 24.3.2</strong> is a security release primarily addressing vulnerabilities found in
+PHP, libxml2 and the Ubuntu 24.04 base image, notably in Apache httpd, libcurl, and OpenSSL.
+We encourage all users to update to this release.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.31" class="external" target="_blank">PHP 8.3.31</a>: <strong>CVE-2026-6735</strong></li>
+<li><a href="https://ssl-config.mozilla.org/#server=apache&amp;version=2.4.58&amp;config=intermediate&amp;openssl=3.0.13&amp;ocsp&amp;guideline=5.8" class="external" target="_blank">Mozilla Server Side TLS 5.8</a></li>
+<li><a href="https://packagist.org/packages/maennchen/zipstream-php#3.2.2" class="external" target="_blank">zipstream-php 3.2.2</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.9" class="external" target="_blank">libxml2 2.13.9</a>: backported security fixes for <a href="administration/security.html"><strong>CVE-2026-6732</strong></a> and other issues</li>
+<li><a href="reference/functions/html-parse.html"><code>html-parse</code></a> and <a href="reference/functions/xml-parse.html"><code>xml-parse()</code></a> functions: introduced parse size limit via <a href="administration/configuration.html#general"><code>$FLAT_MAX_PARSE_SIZE</code> environment variable</a></li>
+</ul>
+<hr>
+<h2 id="2431"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.3.1" class="external" target="_blank">24.3.1</a><a class="anchor" href="#2431"> # </a></h2>
+<p>2026-03-18</p>
+<p>⚠️ Security release (stable)</p>
+<p>The <strong>FLAT 24.3.1</strong> security release comprises minor component updates, including fixes
+for known vulnerabilities. We encourage all users to update to this release.</p>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li>set the upstream <code>User-Agent</code> header via <a href="administration/configuration.html#general"><code>$FLAT_USER_AGENT</code></a> environment variable</li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li>libcurl: <strong>CVE-2026-1965</strong>, <strong>CVE-2026-3783</strong>, <strong>CVE-2026-3784</strong></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.30" class="external" target="_blank">PHP 8.3.30</a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.28" class="external" target="_blank">APCu 5.1.28</a></li>
+<li><a href="https://packagist.org/packages/symfony/yaml#v7.3.8" class="external" target="_blank">Symfony Yaml 7.3.8</a></li>
+<li><a href="https://packagist.org/packages/maennchen/zipstream-php#3.2.1" class="external" target="_blank">zipstream-php 3.2.1</a></li>
+<li><a href="https://packagist.org/packages/robrichards/xmlseclibs#3.1.5" class="external" target="_blank">xmlseclibs 3.1.5</a>: <strong>CVE-2025-66578</strong>, <strong>CVE-2026-32313</strong></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>flaw in XML canonicalization: <strong>CVE-2025-66578</strong></li>
+</ul>
+<hr>
+<h2 id="2430"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.3.0" class="external" target="_blank">24.3.0</a><a class="anchor" href="#2430"> # </a></h2>
+<p>2025-11-27</p>
+<p>Feature release (stable)</p>
+<p><strong>FLAT 24.3.0</strong> is a stable release providing minor updates to third-party libraries and components.
+It also includes new Swagger properties for Basic Authentication and CORS.</p>
+<p>To further increase code quality, some features are now considered <a href="reference/deprecations.html">deprecated</a> and will be removed in a future release.
+See the <a href="cookbook/deprecations.html">deprecation guide</a> on how to migrate away from them.</p>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li><a href="reference/openapi/basic-authentication.html"><code>x-flat-basicauth</code> Swagger property</a> for Basic Authentication</li>
+<li><code>max-age</code> property in <a href="reference/openapi/cors.html"><code>x-flat-cors</code></a> to set up CORS caching</li>
+<li><a href="administration/configuration.html#general">environment variable <code>$FLAT_STRICT_DEPRECATIONS</code></a></li>
+<li><a href="reference/debugging.html">log level <code>deprecation</code></a></li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.28" class="external" target="_blank">PHP 8.3.28</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.9" class="external" target="_blank">libxml2 2.13.9</a>: <a href="administration/security.html"><strong>CVE-2025-6021</strong></a>, <a href="administration/security.html"><strong>CVE-2025-6170</strong></a>, <a href="administration/security.html"><strong>CVE-2025-7425</strong></a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.27" class="external" target="_blank">APCu 5.1.27</a></li>
+<li><a href="https://packagist.org/packages/marc-mabe/php-enum#v4.7.2" class="external" target="_blank">php-enum 4.7.2</a></li>
+<li><a href="https://github.com/m6w6/ext-raphf/releases/tag/v2.0.2" class="external" target="_blank">raphf 2.0.2</a></li>
+<li><a href="https://packagist.org/packages/symfony/yaml#v7.3.5" class="external" target="_blank">Symfony Yaml 7.3.5</a></li>
+<li><a href="https://packagist.org/packages/maennchen/zipstream-php#3.2.0" class="external" target="_blank">zipstream-php 3.2.0</a></li>
+</ul>
+<h3 id="deprecated">Deprecated<a class="anchor" href="#deprecated"> # </a></h3>
+<ul>
+<li><a href="reference/actions/auth.html"><code>auth</code> action</a></li>
+<li><a href="reference/actions/regex.html"><code>regex</code> action</a></li>
+<li>other undocumented actions and functions</li>
+</ul>
+<hr>
+<h2 id="2421"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.2.1" class="external" target="_blank">24.2.1</a><a class="anchor" href="#2421"> # </a></h2>
+<p>2025-08-07</p>
+<p>⚠️ Security release (stable)</p>
+<p><strong>FLAT 24.2.1</strong> is a security release addressing multiple vulnerabilities in two of
+its main components. We encourage all users to update to this latest release.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li>Apache httpd: <strong>CVE-2025-23048</strong>, <strong>CVE-2024-43204</strong>, <strong>CVE-2024-42516</strong>, <strong>CVE-2024-47252</strong>, <strong>CVE-2025-49630</strong>, <strong>CVE-2025-49812</strong>, <strong>CVE-2025-53020</strong></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.24" class="external" target="_blank">PHP 8.3.24</a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.26" class="external" target="_blank">APCu 5.1.26</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li><code>/beam.fit</code> source code exposed</li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li>libxml2 Schematron support: <strong>CVE-2025-49794</strong>, <strong>CVE-2025-49795</strong>, <strong>CVE-2025-49796</strong></li>
+</ul>
+<hr>
+<h2 id="2420"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.2.0" class="external" target="_blank">24.2.0</a><a class="anchor" href="#2420"> # </a></h2>
+<p>2025-07-08</p>
+<p>Feature release (stable)</p>
+<p><strong>FLAT 24.2.0</strong> is a stable release bringing new features and some minor component updates.
+It also includes some code cleanup, bug fixes, and refactoring.</p>
+<p>The TLS/SSL configuration provided now disables all TLS versions except
+1.2 and 1.3. If you offload SSL processing, e.g. to your
+load balancer, you should not be affected by this change.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.22" class="external" target="_blank">PHP 8.3.23</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.8" class="external" target="_blank">libxml2 2.13.8</a></li>
+<li><a href="https://ssl-config.mozilla.org/#server=apache&amp;version=2.4.58&amp;config=intermediate&amp;openssl=3.0.13&amp;ocsp&amp;guideline=5.7" class="external" target="_blank">Mozilla Server Side TLS 5.7.1</a></li>
+<li><a href="https://packagist.org/packages/nyholm/psr7#1.8.2" class="external" target="_blank">psr7 1.8.2</a></li>
+<li><a href="https://packagist.org/packages/phpunit/phpunit#11.3.6" class="external" target="_blank">phpunit 11.3.6</a> (test images only)</li>
+</ul>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li><a href="administration/configuration.html">Apache configuration via environment variables</a></li>
+<li><a href="administration/docker.html#separate-php-fpm-and-httpd-containers">environment variable <code>PHPFPM</code></a> to specify the hostname of the PHP-FPM container</li>
+<li><code>xpath</code> attribute in <a href="reference/actions/dump.html"><code>dump</code> action</a> to select which nodes to dump</li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>invalid JSON in PHP-FPM logs</li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li>support for TLS 1.1 and earlier for client connections</li>
+<li>undocumented obsolete features and legacy code</li>
+</ul>
+<hr>
+<h2 id="2412"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.1.2" class="external" target="_blank">24.1.2</a><a class="anchor" href="#2412"> # </a></h2>
+<p>2025-04-11</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.20" class="external" target="_blank">PHP 8.3.20</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.7" class="external" target="_blank">libxml2 2.13.7</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.43" class="external" target="_blank">libxslt 1.1.43</a></li>
+<li><a href="https://packagist.org/packages/maennchen/zipstream-php" class="external" target="_blank">zipstream-php 3.1.2</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>Boolean values of <code>$env</code> variables disappear</li>
+<li>invalid internal files paths</li>
+<li>handling of invalid UTF-8 characters in <a href="reference/functions/README.html">functions</a></li>
+</ul>
+<hr>
+<h2 id="2411"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.1.1" class="external" target="_blank">24.1.1</a><a class="anchor" href="#2411"> # </a></h2>
+<p>2025-01-31</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.16" class="external" target="_blank">PHP 8.3.16</a></li>
+<li><a href="https://github.com/m6w6/ext-http/releases/tag/v4.2.6" class="external" target="_blank">pecl_http 4.2.6</a></li>
+<li><a href="https://github.com/jsonrainbow/json-schema/releases/tag/6.0.0" class="external" target="_blank">json-schema 6.0.0</a></li>
+<li><a href="https://github.com/robrichards/xmlseclibs/releases/tag/3.1.3" class="external" target="_blank">xmlseclibs 3.1.3</a></li>
+<li><a href="https://github.com/symfony/yaml/releases/tag/v7.0.8" class="external" target="_blank">Symfony Yaml 7.0.8</a></li>
+<li><a href="https://github.com/icecave/parity/releases/tag/3.0.1" class="external" target="_blank">parity 3.0.1</a></li>
+<li><a href="https://github.com/marc-mabe/php-enum/releases/tag/v4.7.1" class="external" target="_blank">php-enum 4.7.1</a></li>
+<li><a href="https://getcomposer.org" class="external" target="_blank">Composer 2.8.4</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>erroneously altered numeric client parameters (regression #160)</li>
+</ul>
+<hr>
+<h2 id="2410"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.1.0" class="external" target="_blank">24.1.0</a><a class="anchor" href="#2410"> # </a></h2>
+<p>2024-11-25</p>
+<p>Feature release (stable)</p>
+<p><strong>FLAT 24.1.0</strong> features both major and minor updates of its main libraries.
+Therefore some XML processing behavior changed slightly, see below.</p>
+<p>TLS/SSL is now disabled by default in the web server. If you require
+virtual hosts that can handle TLS/SSL, you now have to set the environment
+variable <code>SSL</code> to 1. If you are offloading SSL processing, e.g. to your
+load balancer, you should not be affected by this change.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.13" class="external" target="_blank">PHP 8.3.13</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.13.5" class="external" target="_blank">libxml2 2.13.5</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.42" class="external" target="_blank">libxslt 1.1.42</a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.24" class="external" target="_blank">APCu 5.1.24</a></li>
+</ul>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li>FLAT’s <a href="reference/openapi/differences.html">Swagger dialect</a> now allows <code>example</code> fields directly below request <code>parameters</code> to ease API documentation.</li>
+<li>switched to modern and more resource efficient <a href="https://httpd.apache.org/docs/2.4/mod/event.html" class="external" target="_blank"><code>event</code> MPM</a></li>
+<li>made TLS/SSL optional via <code>SSL</code> environment variable</li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>XPath expressions containing non-UTF-8 characters are now considered invalid.</li>
+<li>XML <code>include</code> elements which could not be resolved are now removed from their document.</li>
+<li>stabilize TLS tests by badssl test via local container</li>
+<li>For HTML output, pretty printing is disabled to better match the document structure of the original document.</li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li>unnecessary modules from Apache web server configuration</li>
+</ul>
+<hr>
+<h2 id="2402"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.0.2" class="external" target="_blank">24.0.2</a><a class="anchor" href="#2402"> # </a></h2>
+<p>2024-10-04</p>
+<p>⚠️ Security release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.12.9" class="external" target="_blank">libxml2 2.12.9</a>: <strong>CVE-2024-40896</strong></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.12" class="external" target="_blank">PHP 8.3.12</a>: <strong>CVE-2024-8925</strong>, <strong>CVE-2024-8926</strong>, <strong>CVE-2024-8927</strong>, <strong>CVE-2024-9026</strong></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.42" class="external" target="_blank">libxslt 1.1.42</a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.24" class="external" target="_blank">APCu 5.1.24</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li><strong>CVE-2024-39884</strong>, <strong>CVE-2024-40725</strong></li>
+</ul>
+<hr>
+<h2 id="2401"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.0.1" class="external" target="_blank">24.0.1</a><a class="anchor" href="#2401"> # </a></h2>
+<p>2024-07-01</p>
+<p>Bug fix release (stable)</p>
+<p><strong>FLAT 24.0.1</strong> features minor updates, enhancements and bug fixes.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.12.8" class="external" target="_blank">libxml2 2.12.8</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.41" class="external" target="_blank">libxslt 1.1.41</a></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.7" class="external" target="_blank">PHP 8.3.7</a></li>
+</ul>
+<h3 id="changed">Changed<a class="anchor" href="#changed"> # </a></h3>
+<ul>
+<li>the access log output of Apache httpd is now <a href="administration/logging.html">enabled by default</a></li>
+<li>further consolidation of field names in logs</li>
+</ul>
+<hr>
+<h2 id="2400"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=24.0.0" class="external" target="_blank">24.0.0</a><a class="anchor" href="#2400"> # </a></h2>
+<p>2024-05-14</p>
+<p>Major release (stable)</p>
+<p><strong>FLAT 24.0.0</strong> features an upgrade of the base image to Ubuntu 24.04 LTS as
+well as major upgrades of the third-party components PHP and libxml2.
+Many libraries have received updates, too.</p>
+<p>The release also comes with two new images for monitoring (<code>flatphpstats</code>)
+and maintenance (<code>flatcleancaches</code>) and the option to run web server and PHP-FPM
+as separate containers.</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://discourse.ubuntu.com/t/ubuntu-24-04-lts-noble-numbat-release-notes/39890" class="external" target="_blank">Ubuntu 24.04 LTS</a></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.3.6" class="external" target="_blank">PHP 8.3.6</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.12.6" class="external" target="_blank">libxml2 2.12.6</a></li>
+<li><a href="https://github.com/krakjoe/apcu/releases/tag/v5.1.23" class="external" target="_blank">APCu 5.1.23</a></li>
+<li><a href="https://pecl.php.net/package/pecl_http/4.2.4" class="external" target="_blank">pecl_http 4.2.4</a></li>
+<li><a href="https://github.com/Nyholm/psr7" class="external" target="_blank">psr7 1.8.1</a></li>
+<li><a href="https://github.com/robrichards/xmlseclibs" class="external" target="_blank">xmlseclibs 3.1.1</a></li>
+<li><a href="https://github.com/symfony/yaml" class="external" target="_blank">Symfony Yaml 7.0.3</a></li>
+<li><a href="https://github.com/maennchen/ZipStream-PHP" class="external" target="_blank">ZipStream-PHP 3.1.0</a></li>
+</ul>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li>optionally run PHP-FPM and httpd <a href="administration/docker.html#separate-php-fpm-and-httpd-containers">as separate containers</a></li>
+<li><a href="administration/docker.html#additional-container-images"><code>flatphpstats</code> container image</a> to monitor utilization</li>
+<li><a href="administration/docker.html#additional-container-images"><code>flatcleancaches</code> container image</a></li>
+<li><a href="https://github.com/jbboehr/php-psr" class="external" target="_blank">psr 1.2.0</a></li>
+</ul>
+<h3 id="changed">Changed<a class="anchor" href="#changed"> # </a></h3>
+<ul>
+<li><code>/test.fit</code> endpoint now requires parameter <code>?full</code> for detailed output: <code>/test.fit?full</code></li>
+<li>the access log output of Apache httpd is now <a href="administration/logging.html">formatted as JSON</a></li>
+<li>consolidated field names in logs</li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li><a href="https://pear.php.net/package/Console_CommandLine" class="external" target="_blank">Console_CommandLine</a></li>
+<li><a href="https://github.com/http-interop/http-factory" class="external" target="_blank">http-factory</a></li>
+<li><a href="https://github.com/php-http/message-factory" class="external" target="_blank">message-factory</a></li>
+<li><a href="https://pear.php.net/package/PEAR" class="external" target="_blank">PEAR</a></li>
+<li><a href="https://github.com/myclabs/php-enum" class="external" target="_blank">php-enum</a></li>
+<li><a href="https://github.com/php-fig/http-message" class="external" target="_blank">PSR Http Message</a></li>
+<li>undocumented features/legacy code, e.g. automatic cookie forwarding, control scripts, …</li>
+</ul>
+<hr>
+<h2 id="2312"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.1.2" class="external" target="_blank">23.1.2</a><a class="anchor" href="#2312"> # </a></h2>
+<p>2024-04-22</p>
+<p>⚠️ Security release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li>Ubuntu 20.04 LTS: <strong>CVE-2024-2961</strong>, <strong>CVE-2023-38709</strong>, <strong>CVE-2024-24795</strong></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.18" class="external" target="_blank">PHP 8.2.18</a></li>
+</ul>
+<hr>
+<h2 id="2311"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.1.1" class="external" target="_blank">23.1.1</a><a class="anchor" href="#2311"> # </a></h2>
+<p>2024-02-13</p>
+<p>⚠️ Security/bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.11.7" class="external" target="_blank">libxml2 2.11.7</a>: <strong>CVE-2024-25062</strong></li>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.15" class="external" target="_blank">PHP 8.2.15</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>error in <a href="reference/actions/log.html"><code>log</code> action</a> when overriding nullified log fields (#71)</li>
+</ul>
+<hr>
+<h2 id="2310"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.1.0" class="external" target="_blank">23.1.0</a><a class="anchor" href="#2310"> # </a></h2>
+<p>2024-01-23</p>
+<p>Feature release (stable)</p>
+<h3 id="new">New<a class="anchor" href="#new"> # </a></h3>
+<ul>
+<li><a href="reference/openapi/cors.html">CORS handling</a> with subdomain wildcards</li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>Updated <a href="reference/openapi/cors.html">CORS</a> behavior according to the current <a href="https://fetch.spec.whatwg.org/#http-cors-protocol" class="external" target="_blank">Fetch standard</a></li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.14" class="external" target="_blank">PHP 8.2.14</a></li>
+</ul>
+<hr>
+<h2 id="2306"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.6" class="external" target="_blank">23.0.6</a><a class="anchor" href="#2306"> # </a></h2>
+<p>2023-11-30</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.13" class="external" target="_blank">PHP 8.2.13</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.11.6" class="external" target="_blank">libxml2 2.11.6</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.39" class="external" target="_blank">libxslt 1.1.39</a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li><code>$request/remote-ip</code> now contains the IP address of the peer</li>
+</ul>
+<h3 id="added">Added<a class="anchor" href="#added"> # </a></h3>
+<ul>
+<li><a href="Licenses.html">License information</a> accessible via <code>docker inspect</code></li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li>unused legacy code</li>
+</ul>
+<hr>
+<h2 id="2305"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.5" class="external" target="_blank">23.0.5</a><a class="anchor" href="#2305"> # </a></h2>
+<p>2023-10-11</p>
+<p>⚠️ Security Release (stable)</p>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>cookie injection vulnerability in <code>libcurl</code>: <strong>CVE-2023-38546</strong></li>
+<li><a href="reference/functions/file-exists.html"><code>file-exists</code> function</a> no longer throws an error when used with relative or empty URIs</li>
+<li>networking tests honor proxy settings from environment</li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.11" class="external" target="_blank">PHP 8.2.11</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.11.5" class="external" target="_blank">libxml2 2.11.5</a></li>
+</ul>
+<hr>
+<h2 id="2304"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.4" class="external" target="_blank">23.0.4</a><a class="anchor" href="#2304"> # </a></h2>
+<p>2023-08-22</p>
+<p>Bug fix release (stable)</p>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>status code 404 for missing flows</li>
+<li>release build</li>
+</ul>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.9" class="external" target="_blank">PHP 8.2.9</a></li>
+<li>PHPUnit 10 (only for development/testing)</li>
+</ul>
+<h3 id="improved">Improved<a class="anchor" href="#improved"> # </a></h3>
+<ul>
+<li>measure code coverage</li>
+<li>simplify test setup</li>
+<li>simplify versioning</li>
+</ul>
+<hr>
+<h2 id="2303"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.3" class="external" target="_blank">23.0.3</a><a class="anchor" href="#2303"> # </a></h2>
+<p>2023-08-01</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.8" class="external" target="_blank">PHP 8.2.8</a></li>
+</ul>
+<h3 id="improved">Improved<a class="anchor" href="#improved"> # </a></h3>
+<ul>
+<li>build/test tools</li>
+</ul>
+<hr>
+<h2 id="2302"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.2" class="external" target="_blank">23.0.2</a><a class="anchor" href="#2302"> # </a></h2>
+<p>2023-06-14</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li><a href="https://www.php.net/ChangeLog-8.php#8.2.7" class="external" target="_blank">PHP 8.2.7</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.11.4" class="external" target="_blank">libxml2 2.11.4</a></li>
+<li><a href="https://gitlab.gnome.org/GNOME/libxslt/-/releases/v1.1.38" class="external" target="_blank">libxslt 1.1.38</a></li>
+</ul>
+<hr>
+<h2 id="2301"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.1" class="external" target="_blank">23.0.1</a><a class="anchor" href="#2301"> # </a></h2>
+<p>2023-05-09</p>
+<p>Bug fix release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li>libxml2 2.10.4: <strong>CVE-2023-29469</strong>, <strong>CVE-2023-28484</strong></li>
+<li>PHP 8.2.5</li>
+</ul>
+<h3 id="added">Added<a class="anchor" href="#added"> # </a></h3>
+<ul>
+<li>version info now also available via <a href="reference/variables.html"><code>$server/flat-version</code></a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li><a href="reference/openapi/mocking.html">Mocking</a> was allowed by default. Can be enabled by <code>$FLAT_ALLOW_MOCKING=true</code>.</li>
+</ul>
+<hr>
+<h2 id="2300"><a href="https://code.avenga.cloud/product/flat/flat/container_registry/841?search%5B%5D=23.0.0" class="external" target="_blank">23.0.0</a><a class="anchor" href="#2300"> # </a></h2>
+<p>2023-04-04</p>
+<p>Major release (stable)</p>
+<h3 id="updated">Updated<a class="anchor" href="#updated"> # </a></h3>
+<ul>
+<li>slimline <a href="administration/docker.html">Docker image</a> based on Ubuntu 20.04 LTS</li>
+<li>PHP 8.2.4 + compatible modules</li>
+<li>libxml2 2.10.3</li>
+<li>libxslt 1.1.37</li>
+</ul>
+<h3 id="added">Added<a class="anchor" href="#added"> # </a></h3>
+<ul>
+<li>functions to handle date and time: <a href="reference/functions/datetime-format.html"><code>datetime-format()</code></a>, <a href="reference/functions/datetime-parse.html"><code>datetime-parse()</code></a>, <a href="reference/functions/datetime-parse-iso.html"><code>datetime-parse-iso()</code></a></li>
+</ul>
+<h3 id="fixed">Fixed<a class="anchor" href="#fixed"> # </a></h3>
+<ul>
+<li>sorting order of some special characters in <a href="reference/functions/sort.html"><code>sort()</code></a></li>
+<li>evaluation of <a href="administration/configuration.html#general"><code>$FLAT_USE_XSLT_CACHE</code> environment variable</a></li>
+<li>no more backslash escaping of <code>/</code> in <a href="reference/actions/template.html"><code>template</code></a> output</li>
+<li>parser in <a href="reference/functions/html-parse.html"><code>html-parse()</code></a> now HTML5 compatible</li>
+</ul>
+<h3 id="removed">Removed<a class="anchor" href="#removed"> # </a></h3>
+<ul>
+<li><code>flat</code> CLI, use <code>docker run</code>/<code>docker exec</code> or <a href="administration/docker.html"><code>docker compose</code></a> instead</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="administration/docker.html">Docker</a></li>
+<li><a href="administration/configuration.html">Configuration</a></li>
+<li><a href="administration/logging.html">Logging</a></li>
+<li><a href="administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="reference/actions/README.html">Actions</a></summary><ul><li><a href="reference/actions/auth.html">auth</a></li>
+<li><a href="reference/actions/copy.html">copy</a></li>
+<li><a href="reference/actions/debug.html">debug</a></li>
+<li><a href="reference/actions/dump.html">dump</a></li>
+<li><a href="reference/actions/echo.html">echo</a></li>
+<li><a href="reference/actions/error.html">error</a></li>
+<li><a href="reference/actions/eval.html">eval</a></li>
+<li><a href="reference/actions/log.html">log</a></li>
+<li><a href="reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="reference/actions/regex.html">regex</a></li>
+<li><a href="reference/actions/request.html">request</a></li>
+<li><a href="reference/actions/requests.html">requests</a></li>
+<li><a href="reference/actions/serve.html">serve</a></li>
+<li><a href="reference/actions/set-config.html">set-config</a></li>
+<li><a href="reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="reference/actions/set-status.html">set-status</a></li>
+<li><a href="reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="reference/actions/template.html">template</a></li>
+<li><a href="reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="reference/configuration.html">Configuration</a></li>
+<li><a href="reference/debugging.html">Debugging</a></li>
+<li><a href="reference/flow.html">Flow</a></li>
+<li><details><summary><a href="reference/functions/README.html">Functions</a></summary><ul><li><a href="reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="reference/functions/array.html">array()</a></li>
+<li><a href="reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="reference/functions/body.html">body()</a></li>
+<li><a href="reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="reference/functions/content.html">content()</a></li>
+<li><a href="reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="reference/functions/get-log.html">get-log()</a></li>
+<li><a href="reference/functions/has-class.html">has-class()</a></li>
+<li><a href="reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="reference/functions/join.html">join()</a></li>
+<li><a href="reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="reference/functions/lookup.html">lookup()</a></li>
+<li><a href="reference/functions/matches.html">matches()</a></li>
+<li><a href="reference/functions/md5.html">md5()</a></li>
+<li><a href="reference/functions/replace.html">replace()</a></li>
+<li><a href="reference/functions/sort.html">sort()</a></li>
+<li><a href="reference/functions/split.html">split()</a></li>
+<li><a href="reference/functions/tolower.html">tolower()</a></li>
+<li><a href="reference/functions/toupper.html">toupper()</a></li>
+<li><a href="reference/functions/trim.html">trim()</a></li>
+<li><a href="reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="reference/templating/oxn.html">OXN</a></li>
+<li><a href="reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="reference/openapi/routing.html">Routing</a></li>
+<li><a href="reference/openapi/validation.html">Validation</a></li>
+<li><a href="reference/openapi/security.html">Security Check</a></li>
+<li><a href="reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="reference/openapi/cors.html">CORS</a></li>
+<li><a href="reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="reference/testing/README.html">Testing</a></li>
+<li><a href="reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="cookbook/file-serving.html">File Serving</a></li>
+<li><a href="cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="tutorial/README.html">Tutorial</a></summary><ul><li><a href="tutorial/README.html#tools">Tools</a></li>
+<li><a href="tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#2433">24.3.3</a></li><li><a href="#2432">24.3.2</a></li><li><a href="#2431">24.3.1</a></li><li><a href="#2430">24.3.0</a></li><li><a href="#2421">24.2.1</a></li><li><a href="#2420">24.2.0</a></li><li><a href="#2412">24.1.2</a></li><li><a href="#2411">24.1.1</a></li><li><a href="#2410">24.1.0</a></li><li><a href="#2402">24.0.2</a></li><li><a href="#2401">24.0.1</a></li><li><a href="#2400">24.0.0</a></li><li><a href="#2312">23.1.2</a></li><li><a href="#2311">23.1.1</a></li><li><a href="#2310">23.1.0</a></li><li><a href="#2306">23.0.6</a></li><li><a href="#2305">23.0.5</a></li><li><a href="#2304">23.0.4</a></li><li><a href="#2303">23.0.3</a></li><li><a href="#2302">23.0.2</a></li><li><a href="#2301">23.0.1</a></li><li><a href="#2300">23.0.0</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="assets/minisearch.js"></script>
+        <script src="assets/search-index.js"></script>
+        <script src="assets/script.js"></script>
+        <script>
+        const baseURI = "";
+        selectNavElement("CHANGELOG.html")
+        </script>
+        </body>
+        </html>

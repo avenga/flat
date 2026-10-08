@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – request Action</title>
+        <link rel="stylesheet" href="../../assets/highlightjs.css">
+        <link rel="stylesheet" href="../../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="request-action"><code>request</code> Action<a class="anchor" href="#request-action"> # </a></h1>
+<p>The <code>request</code> action carries out a single HTTP or HTTPS request to load content from
+remote upstream servers. If you want to do multiple requests in parallel, use the
+<a href="requests.html"><code>requests</code> action</a> instead. To pass an incoming request almost unmodified
+to an upstream system, use the <a href="proxy-request.html"><code>proxy-request</code> action</a>.</p>
+<h2 id="syntax">Syntax<a class="anchor" href="#syntax"> # </a></h2>
+<ul>
+<li><code>content=&quot;...&quot;</code> to set the ID for a request (optional, default is <code>main</code>)</li>
+</ul>
+<h2 id="usage">Usage<a class="anchor" href="#usage"> # </a></h2>
+<p>You can use a <a href="../templating/README.html">JSON template</a> with the features defined below.</p>
+<p>Example: GET request</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">request</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;my_request&quot;</span>&gt;</span>
+{
+  &quot;url&quot;: &quot;http://www.example.com/foo&quot;,
+  &quot;method&quot;: &quot;GET&quot;,
+  &quot;headers&quot;: {
+    &quot;User-Agent&quot;: &quot;foo&quot;,
+    &quot;X-Foo&quot;: &quot;value 1, value 2&quot;
+  },
+  &quot;query&quot;: {
+    &quot;a&quot;: 37,
+    &quot;b&quot;: &quot;c&quot;
+  }
+}
+<span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+</code></pre>
+<p>Example: POST request</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">request</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;my_request&quot;</span>&gt;</span>
+{
+  &quot;url&quot;: &quot;http://www.example.com/foo&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;User-Agent&quot;: &quot;foo&quot;,
+    &quot;X-Foo&quot;: &quot;value 1, value 2&quot;
+  },
+  &quot;post&quot;: [
+    { &quot;name&quot;: &quot;a&quot;, &quot;value&quot;: &quot;b&quot; },
+    { &quot;name&quot;: &quot;a&quot;, &quot;value&quot;: &quot;foo&quot; }
+  ]
+}
+<span class="hljs-tag">&lt;/<span class="hljs-name">request</span>&gt;</span>
+</code></pre>
+<p>The response body will be written into <code>fit://request/content/&lt;ID&gt;</code> and can be
+accessed with the <a href="../functions/body.html"><code>body</code> function</a> or the
+<a href="../functions/content.html"><code>content</code> function</a>.
+Additional information about the response, such as headers and status code can
+be found in the <a href="../variables.html#predefined-variables"><code>$upstream</code> variable</a>.</p>
+<h3 id="id"><code>id</code><a class="anchor" href="#id"> # </a></h3>
+<p>The <code>id</code> property sets the request ID.
+If <code>id</code> is set in the JSON object, is not <code>null</code> and not <code>&quot;&quot;</code>, it will be used and a <code>content</code> attribute on the <code>request</code> element will be ignored.</p>
+<h3 id="encoding"><code>encoding</code><a class="anchor" href="#encoding"> # </a></h3>
+<p>The <code>encoding</code> property sets the character encoding used for the URI including the query string and <code>POST</code> form data.
+Its value must be a string. The default value is <code>UTF-8</code>.</p>
+<h3 id="url"><code>url</code><a class="anchor" href="#url"> # </a></h3>
+<p>The <code>url</code> property sets the request URL.
+If <code>url</code> is set in the JSON object, is not <code>null</code> and not <code>&quot;&quot;</code>, it will be used and a <code>url</code> attribute on the <code>request</code> element will be ignored.</p>
+<p>Example:</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://www.example.com/api/v1/endpoint&quot;</span>
+</code></pre>
+<h3 id="method"><code>method</code><a class="anchor" href="#method"> # </a></h3>
+<p>The <code>method</code> property sets the request method. Its value must be a string.
+If <code>method</code> is set in the JSON object, is not <code>null</code> and not <code>&quot;&quot;</code>, it will be used and a <code>method</code> attribute on the <code>request</code> element will be ignored.</p>
+<p>The default value is <code>GET</code>. However, if <code>post</code>, <code>upload</code> or <code>body</code> are set in the JSON object, the default value will be <code>POST</code>.</p>
+<p>Example:</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;method&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;POST&quot;</span>
+</code></pre>
+<h3 id="headers"><code>headers</code><a class="anchor" href="#headers"> # </a></h3>
+<p>The <code>headers</code> property sets the request headers. Its value must be a JSON object, with each header field name and value set as properties with values of the JSON objects.
+If multiple header fields with the same name should be set, the values must be concatenated in advance.</p>
+<p>Example:</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;headers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;User-Agent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;content-type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/octet-stream&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;X-Foo&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-punctuation">{</span> concat(<span class="hljs-string">&quot;value1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;,&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;value2&quot;</span>) <span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h3 id="cookies"><code>cookies</code><a class="anchor" href="#cookies"> # </a></h3>
+<p>The <code>cookies</code> property sets the cookies, i.e. it sets a <code>Cookie</code> request header. Its value must be one of the following:</p>
+<ul>
+<li>a JSON object with the cookie key value pairs as properties; or</li>
+<li>an array of JSON objects with <code>name</code> and <code>value</code> properties; the objects must have both <code>name</code> and <code>value</code> properties <code>name</code> must not be empty; other properties are ignored.</li>
+</ul>
+<p>If the value is either a non-empty JSON object or a non-empty array, any <code>Cookie</code> header set via <code>headers</code> will be ignored.</p>
+<p>Example: <code>cookies</code> as a JSON object</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;cookies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;a&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;b&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;c&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>cookies</code> as an array</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;cookies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;b&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;c&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span> <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">]</span>
+</code></pre>
+<h3 id="query"><code>query</code><a class="anchor" href="#query"> # </a></h3>
+<p>The query string of the request URL can be set as part of <code>url</code>.
+The <code>query</code> property sets the query string explicitly. Its value must be one of the following:</p>
+<ul>
+<li>a string (without the <code>&quot;?&quot;</code>);</li>
+<li>a JSON object with the query parameters as properties; or</li>
+<li>an array of JSON objects with <code>name</code> and <code>value</code> properties; the objects must have both <code>name</code> and <code>value</code> properties <code>name</code> must not be empty; other properties are ignored.</li>
+</ul>
+<p>Example: <code>query</code> as a string</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a=12&amp;b=foo&amp;a=13&quot;</span>
+</code></pre>
+<p>Example: <code>query</code> as a JSON object</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;a&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">37</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;b&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;c&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>query</code> as an array</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">12</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span> <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">]</span>
+</code></pre>
+<h3 id="post"><code>post</code><a class="anchor" href="#post"> # </a></h3>
+<p>The <code>post</code> property sets the post parameters (an <code>x-www-form-urlencoded</code> request body). Its value must be one of the following:</p>
+<ul>
+<li>a JSON object with the post parameters as properties; or</li>
+<li>an array of JSON objects with <code>name</code> and <code>value</code> properties; the objects must have both <code>name</code> and <code>value</code> properties <code>name</code> must not be empty; other properties are ignored.</li>
+</ul>
+<p>Example: <code>post</code> as a JSON object</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;post&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;a&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;b&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;c&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>post</code> as an array</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;post&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;b&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo&quot;</span> <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">]</span>
+</code></pre>
+<blockquote>
+<p>📎
+If both <code>post</code> and <code>body</code> are set, <code>post</code> wins.</p>
+</blockquote>
+<h3 id="body"><code>body</code><a class="anchor" href="#body"> # </a></h3>
+<p>The <code>body</code> property sets the request body, in case the body is not <code>x-www-form-urlencoded</code>. Its value must be a JSON object with either</p>
+<ul>
+<li>a <code>src</code> property setting the body location (a reference to the actual body content), or</li>
+<li>a <code>value</code> property setting the body content.</li>
+</ul>
+<p>The optional <code>mime</code> property sets the <code>Content-Type</code> request header. If no <code>mime</code> property is set, the content type is determined automatically.</p>
+<p>Example: <code>body</code> with <code>src</code> using the <a href="../variables.html#predefined-variables">predefined <code>$body</code> variable</a> to pass the incoming request body</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;body&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;src&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;$body&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: body with <code>src</code> using a URL</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;body&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;src&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;fit://site/conf/body.xml&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/xml+foo&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>body</code> with string <code>value</code></p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;body&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;boohooo&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text/plain&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>body</code> with JSON <code>value</code></p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;body&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;user&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;fred&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;pass&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;wilma&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;application/json&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Example: <code>body</code> with template placeholder</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;body&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-punctuation">{</span> $body <span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text/plain&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<blockquote>
+<p>📎
+If both <code>body</code> and <code>post</code> are set, <code>post</code> wins.</p>
+</blockquote>
+<h3 id="uploads"><code>uploads</code><a class="anchor" href="#uploads"> # </a></h3>
+<p>The <code>uploads</code> property sets the content to be uploaded. Its value must be an array of JSON objects with at least</p>
+<ul>
+<li>a <code>name</code> property, indicating the field name</li>
+</ul>
+<p>and</p>
+<ul>
+<li>either a <code>src</code> property, indicating the location of the file</li>
+<li>or a <code>value</code> property, containing the content to be uploaded.</li>
+</ul>
+<p>The optional <code>filename</code> property sets the filename. The optional <code>mime</code> property set the MIME type of the uploaded content.</p>
+<p>Example: <code>uploads</code> with <code>src</code> or <code>value</code></p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;uploads&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+  <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo_html&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;src&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;fit://site/conf/foo.html&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;filename&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo.html&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;mime&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text/html&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo_json&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;src&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;$json&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;filename&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo.json&quot;</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo_text&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;value&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;some random text&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;filename&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;foo.txt&quot;</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">]</span>
+</code></pre>
+<h3 id="options"><code>options</code><a class="anchor" href="#options"> # </a></h3>
+<p>The <code>options</code> property sets the request options. Its value must be a JSON object. The following options are valid:</p>
+<ul>
+<li><code>timeout</code> - Maximum time in seconds for processing a request (type: <code>number</code>, default: <a href="../../administration/configuration.html#request-timeouts"><code>$FLAT_FETCH_DEFAULT_TIMEOUT</code></a>)</li>
+<li><code>connect-timeout</code> - Maximum time in seconds for establishing a connection to a server (type: <code>number</code>, default: <a href="../../administration/configuration.html#request-timeouts"><code>$FLAT_FETCH_DEFAULT_CONNECT_TIMEOUT</code></a>)</li>
+<li><code>time-to-first-byte-timeout</code> - Maximum time in seconds for receiving the first byte (type: <code>integer</code>, default: <a href="../../administration/configuration.html#request-timeouts"><code>$FLAT_DEFAULT_TTFB_TIMEOUT</code></a>)</li>
+<li><code>send-x-forwarded-for</code> - Whether to include the client’s IP address in an <code>X-Forwarded-For</code> header (type: <code>boolean</code>, default <code>false</code>)</li>
+<li><code>set-response-headers</code> - The HTTP response header fields to set in the response (type: <code>object</code> with field name as key and <code>string</code> or array of <code>string</code> as value)</li>
+<li><code>tls-version</code> - The TLS version (valid values: <code>&quot;auto&quot;</code>, <code>&quot;TLSv1&quot;</code>, <code>&quot;TLSv1.0&quot;</code>, <code>&quot;TLSv1.1&quot;</code>, <code>&quot;TLSv1.2&quot;</code>)</li>
+<li><code>tls-ciphers</code> - Ciphers to use for TLS connections (type: <code>string</code>)</li>
+<li><code>ignore-certificate-errors</code> - Do not check server certificate in order to use upstream services with self-signed or expired TLS certificates (not recommended, use with caution!) (type: <code>boolean</code>, default <code>false</code>)</li>
+<li><code>client-certificate-file</code> - Path to the client certificate (<code>.pem</code>) (type: <code>string</code>)</li>
+<li><code>client-certificate-password</code> - The certificate password (type: <code>string</code>)</li>
+<li><code>transport-protocol</code> - Protocol for communication with the upstream system (valid values: <code>http</code>, <code>https</code>)</li>
+<li><code>transport-server</code> - Backend server to communicate with (type: <code>string</code>)</li>
+<li><code>transport-port</code> - Port for communication with the upstream system (type: <code>integer</code>)</li>
+<li><code>proxy-server</code> - Proxy server hostname with port (type: <code>string</code>)</li>
+<li><code>proxy-credentials</code> - Authentication data for the proxy server (type: <code>string</code>)</li>
+<li><code>use-http-cache</code> - Whether to enable the HTTP cache (type: <code>boolean</code>, default: <code>false</code>). This option is mutually exclusive with <code>force-cache-ttl</code>.</li>
+<li><code>force-cache-ttl</code> - All resources are cached with a fixed time-to-live, ignoring all cache response headers and other obstacles for caching (type: <code>integer</code>). A number &gt; 0 enables this kind of caching, specifying a lifetime in seconds. This option is mutually exclusive with <code>use-http-cache</code>.</li>
+<li><code>force-cache-refresh</code> - if <code>true</code>, fetch a fresh response from upstream, even if a valid cached response is available (type: <code>boolean</code>, default: <code>false</code>). This works with both <code>use-http-cache</code> or <code>force-cache-ttl</code>.</li>
+<li><code>respect-client-cache-headers</code> - Whether to respect incoming cache headers (type: <code>boolean</code>, default: <code>false</code>)</li>
+<li><code>follow-redirects</code> - Whether to automatically follow redirects (type: <code>boolean</code>, default: <code>false</code>)</li>
+<li><code>max-redirects</code> - Maximum number of consecutive redirects to follow (type: <code>integer</code>)</li>
+<li><code>basic-auth-credentials</code> - Basic Authentication credentials for the upstream system (type: <code>string</code>)</li>
+<li><code>query-encoding-raw-chars</code> - Characters in the query string to exclude from the URL encoding (type: <code>string</code>)</li>
+<li><code>disable-connection-reuse</code> - Whether to disable the reuse of HTTP connections (type: <code>boolean</code>, default: <code>false</code>)</li>
+<li><code>mock-response</code> - Whether to <a href="../openapi/upstream.html#mocking">mock the response</a> (type: <code>boolean</code>, default: <code>false</code>)</li>
+<li><code>validate-request</code> - Whether to validate the request (valid values: <code>true</code>, <code>false</code>, “report-only”, default: <code>false</code>)</li>
+<li><code>validate-request-security</code> - Whether to validate the request security requirements according to <code>security</code> in the swagger definition (valid values: <code>true</code>, <code>false</code>, “report-only”, default: <code>false</code>)</li>
+<li><code>validate-response</code> - Whether to validate the response (valid values: <code>true</code>, <code>false</code>, “report-only”, default: <code>false</code>)</li>
+<li><code>definition</code> - The path to the swagger definition file (type: <code>string</code>)</li>
+<li><code>exit-on-error</code> - if <code>true</code>, abort normal processing of the flow in case of validation errors. If configured, the <a href="../openapi/routing.html#error-flow">error flow</a> is run. Otherwise a standard error message is substituted as a response to the request (type: <code>boolean</code>, default <code>false</code>)</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json"><span class="hljs-attr">&quot;options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;timeout&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">5</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;follow-redirects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;max-redirects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">10</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;basic-auth-credentials&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;user:s3CreT&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;validate-response&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;set-response-headers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;Cache-Control&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;s-maxage=3600&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;Set-Cookie&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;a=1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;b=2&quot;</span> <span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="proxy-request.html"><code>proxy-request</code> action</a> (reference)</li>
+<li><a href="requests.html"><code>requests</code> action</a> (reference)</li>
+<li><a href="../../tutorial/README.html#upstream-requests">Tutorial</a></li>
+<li><a href="../../cookbook/upstream-post-requests.html">Sending POST Requests</a></li>
+<li><a href="../../cookbook/pass-header-field-upstream.html">Passing Header Fields</a></li>
+<li><a href="../../cookbook/request-timeout.html">Increasing the Request Timeout</a></li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../../administration/docker.html">Docker</a></li>
+<li><a href="../../administration/configuration.html">Configuration</a></li>
+<li><a href="../../administration/logging.html">Logging</a></li>
+<li><a href="../../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../../reference/actions/README.html">Actions</a></summary><ul><li><a href="../../reference/actions/auth.html">auth</a></li>
+<li><a href="../../reference/actions/copy.html">copy</a></li>
+<li><a href="../../reference/actions/debug.html">debug</a></li>
+<li><a href="../../reference/actions/dump.html">dump</a></li>
+<li><a href="../../reference/actions/echo.html">echo</a></li>
+<li><a href="../../reference/actions/error.html">error</a></li>
+<li><a href="../../reference/actions/eval.html">eval</a></li>
+<li><a href="../../reference/actions/log.html">log</a></li>
+<li><a href="../../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../../reference/actions/regex.html">regex</a></li>
+<li><a href="../../reference/actions/request.html">request</a></li>
+<li><a href="../../reference/actions/requests.html">requests</a></li>
+<li><a href="../../reference/actions/serve.html">serve</a></li>
+<li><a href="../../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../../reference/actions/template.html">template</a></li>
+<li><a href="../../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../../reference/configuration.html">Configuration</a></li>
+<li><a href="../../reference/debugging.html">Debugging</a></li>
+<li><a href="../../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../../reference/functions/README.html">Functions</a></summary><ul><li><a href="../../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../../reference/functions/array.html">array()</a></li>
+<li><a href="../../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../../reference/functions/body.html">body()</a></li>
+<li><a href="../../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../../reference/functions/content.html">content()</a></li>
+<li><a href="../../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../../reference/functions/join.html">join()</a></li>
+<li><a href="../../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../../reference/functions/matches.html">matches()</a></li>
+<li><a href="../../reference/functions/md5.html">md5()</a></li>
+<li><a href="../../reference/functions/replace.html">replace()</a></li>
+<li><a href="../../reference/functions/sort.html">sort()</a></li>
+<li><a href="../../reference/functions/split.html">split()</a></li>
+<li><a href="../../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../../reference/functions/trim.html">trim()</a></li>
+<li><a href="../../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../../reference/testing/README.html">Testing</a></li>
+<li><a href="../../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#syntax">Syntax</a></li><li><a href="#usage">Usage</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../../assets/minisearch.js"></script>
+        <script src="../../assets/search-index.js"></script>
+        <script src="../../assets/script.js"></script>
+        <script>
+        const baseURI = "../../";
+        selectNavElement("../../reference/actions/request.html")
+        </script>
+        </body>
+        </html>

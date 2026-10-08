@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Performing Additional Checks on JWT Access Tokens</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="performing-additional-checks-on-jwt-access-tokens">Performing Additional Checks on JWT Access Tokens<a class="anchor" href="#performing-additional-checks-on-jwt-access-tokens"> # </a></h1>
+<p>Before you start, make sure that you have read the cookbook chapter <a href="x-flat-jwt.html">Protecting Access using JWT Tokens</a>.</p>
+<p>Let’s start with the following swagger definition:</p>
+<p><code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">host:</span> <span class="hljs-string">my-api.com</span>
+<span class="hljs-attr">schemes:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">https</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$jwt</span>
+<span class="hljs-attr">security:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> []
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/projects/{p}:</span>
+    <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">…</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">The</span> <span class="hljs-string">project</span> <span class="hljs-string">identifier</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+    <span class="hljs-attr">patch:</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">The</span> <span class="hljs-string">project</span> <span class="hljs-string">identifier</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+</code></pre>
+<p>The API has one endpoint with a path parameter <code>p</code> indicating the project identifier and two operations (<code>GET</code> and <code>PATCH</code>). The whole API is secured with a security scheme labeled <code>JWTCookie</code>.</p>
+<p>FLAT will make sure that every request to this endpoint</p>
+<ul>
+<li>has a <code>Cookie</code> header</li>
+<li>with a value for the <code>authtoken</code> cookie</li>
+<li>that is a JWT</li>
+<li>properly signed and</li>
+<li>not expired.</li>
+</ul>
+<p>In addition to this, FLAT provides features for further checks:</p>
+<ul>
+<li><a href="#checking-claims">Claims</a></li>
+<li><a href="#checking-scopes">Scopes</a></li>
+<li><a href="#the-post-check-flow">Post-check flow</a></li>
+</ul>
+<h2 id="checking-claims">Checking Claims<a class="anchor" href="#checking-claims"> # </a></h2>
+<p>For example, you can ensure that the token was issued by a specific token provider (<code>iss</code> claim)</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$jwt</span>
+      <span class="hljs-attr">claims:</span>
+        <span class="hljs-attr">iss:</span> <span class="hljs-string">&quot;https://trustworthy-token-provider.com&quot;</span>  <span class="hljs-comment"># ⬅ the mandatory value for the iss claim</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>and that your API is (one of) the intended audience(s) for the token (<code>aud</code> claim)</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$jwt</span>
+      <span class="hljs-attr">claims:</span>
+        <span class="hljs-attr">iss:</span> <span class="hljs-string">&quot;https://trustworthy-token-provider.com&quot;</span>
+        <span class="hljs-attr">aud:</span> <span class="hljs-string">&quot;https://my-api.com/&quot;</span>    <span class="hljs-comment"># ⬅ a mandatory value for the aud claim</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>A JWT with the following claims will pass the test:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;iss&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://trustworthy-token-provider.com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;aud&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;https://my-api.com/&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;https://a-different-api.org/&quot;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  …
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>while</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;iss&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://the-reckless-token-provider.com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;aud&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;https://my-api.com/&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;https://a-different-api.org/&quot;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  …
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>or</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;iss&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://trustworthy-token-provider.com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;aud&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;https://a-different-api.org/&quot;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  …
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>will <strong>not</strong> pass.</p>
+<h2 id="checking-scopes">Checking Scopes<a class="anchor" href="#checking-scopes"> # </a></h2>
+<p>Let’s restrict the use of the <code>PATCH</code> operation to specially authorized requests. We can use scopes to achieve this:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">patch:</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> [ <span class="hljs-string">write</span> ]
+      <span class="hljs-attr">parameters:</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>FLAT will now look for a scope claim (default claim name is <code>scope</code>) with a value of <code>write</code>. If the <code>write</code> scope is present (possibly along with further scopes, like in <code>&quot;scope&quot;: &quot;read write create&quot;</code>), the request passes, otherwise it is rejected.</p>
+<p>BTW, you can specify another claim name for scopes using the <code>scope-claim</code> property of <code>x-flat-jwt</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">scope-claim:</span> <span class="hljs-string">sc</span>    <span class="hljs-comment"># ⬅ look for scopes in the sc JWT claim</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<h2 id="the-post-check-flow">The post-check flow<a class="anchor" href="#the-post-check-flow"> # </a></h2>
+<p>Finally, we want to check that a certain non-standard JWT claim <code>pid</code> matches the path parameter <code>p</code> (the project identifier).</p>
+<p>We use the post-check-flow feature:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-string">…</span>
+      <span class="hljs-attr">post-check-flow:</span> <span class="hljs-string">check-jwt.xml</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>with <code>check-jwt.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- $jwt contains the JWT claims, see the out-var property or x-flat-jwt --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">log</span>&gt;</span>
+  {
+    &quot;token_id&quot;: {{ $jwt/pid }},
+    &quot;path_id&quot;: {{ $request/params/p }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">log</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">error</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;not($jwt/pid) or $jwt/pid != $request/params/p&quot;</span>&gt;</span>
+  {
+    &quot;status&quot;: 401,
+    &quot;message&quot;: &quot;Token is not applicable for this project.&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">error</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>A JWT with the claim</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  …
+  <span class="hljs-attr">&quot;pid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ABC123&quot;</span><span class="hljs-punctuation">,</span>
+  …
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>will permit access to <code>https://my-api.com/projects/ABC123</code>, but <strong>not</strong> to <code>https://my-api.com/projects/DEF456</code>.</p>
+<h2 id="all-files-together">All files together<a class="anchor" href="#all-files-together"> # </a></h2>
+<p><code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">host:</span> <span class="hljs-string">my-api.com</span>
+<span class="hljs-attr">schemes:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">https</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">claims:</span>
+        <span class="hljs-attr">iss:</span> <span class="hljs-string">&quot;https://trustworthy-token-provider.com&quot;</span>
+      <span class="hljs-attr">scope-claim:</span> <span class="hljs-string">sc</span> <span class="hljs-comment"># default: scope</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$the_claims</span>
+      <span class="hljs-attr">out-header:</span> <span class="hljs-string">JWT</span>
+      <span class="hljs-attr">post-check-flow:</span> <span class="hljs-string">check-jwt.xml</span>
+<span class="hljs-attr">security:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> []
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/projects/{p}:</span>
+    <span class="hljs-attr">x-flat-flow:</span> <span class="hljs-string">...</span>
+    <span class="hljs-attr">get:</span>
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">The</span> <span class="hljs-string">project</span> <span class="hljs-string">identifier</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+    <span class="hljs-attr">patch:</span>
+      <span class="hljs-attr">security:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> [ <span class="hljs-string">write</span> ]
+      <span class="hljs-attr">parameters:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p</span>
+          <span class="hljs-attr">in:</span> <span class="hljs-string">path</span>
+          <span class="hljs-attr">description:</span> <span class="hljs-string">The</span> <span class="hljs-string">project</span> <span class="hljs-string">identifier</span>
+          <span class="hljs-attr">type:</span> <span class="hljs-string">string</span>
+          <span class="hljs-attr">required:</span> <span class="hljs-literal">true</span>
+</code></pre>
+<p><code>check-jwt.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-comment">&lt;!-- $jwt contains the JWT claims, see the out-var property --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">log</span>&gt;</span>
+  {
+    &quot;token_id&quot;: {{ $jwt/pid }},
+    &quot;path_id&quot;: {{ $request/params/p }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">log</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">error</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;not($jwt/pid) or $jwt/pid != $request/params/p&quot;</span>&gt;</span>
+  {
+    &quot;status&quot;: 401,
+    &quot;message&quot;: &quot;Token is not applicable for this project.&quot;
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">error</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="../reference/openapi/security.html">FLAT Security</a> (reference)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#checking-claims">Checking Claims</a></li><li><a href="#checking-scopes">Checking Scopes</a></li><li><a href="#the-post-check-flow">The post-check flow</a></li><li><a href="#all-files-together">All files together</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/checking-jwt-tokens.html")
+        </script>
+        </body>
+        </html>

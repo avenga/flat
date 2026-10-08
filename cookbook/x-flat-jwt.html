@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta revision="bf6f2535ed2f2864995df43e6051d4900e43e529">
+        <meta date="2026-10-08T07:13:34.354Z">
+        <title>FLAT – Protecting Access using JWT Tokens</title>
+        <link rel="stylesheet" href="../assets/highlightjs.css">
+        <link rel="stylesheet" href="../assets/styles.css">
+        </head>
+        <body>
+        <header></header>
+        <h1 id="protecting-access-using-jwt-tokens">Protecting Access using JWT Tokens<a class="anchor" href="#protecting-access-using-jwt-tokens"> # </a></h1>
+<p>Imagine you had a <a href="../reference/openapi/routing.html#assigning-flat-proxies">proxy</a> to an API, e.g. httpbin.org.</p>
+<p><code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/httpbin/**:</span>
+    <span class="hljs-attr">x-flat-proxy:</span>
+      <span class="hljs-attr">origin:</span> <span class="hljs-string">https://httpbin.org</span>
+      <span class="hljs-attr">stripEndpoint:</span> <span class="hljs-literal">true</span>
+</code></pre>
+<p>Sending a request to FLAT running on localhost port 8080 results in:</p>
+<pre><code class="language-sh">$ curl -i http://localhost:8080/httpbin/anything
+HTTP/1.1 200 OK
+…
+Content-Type: application/json
+
+{
+  <span class="hljs-string">&quot;args&quot;</span>: {},
+  <span class="hljs-string">&quot;data&quot;</span>: <span class="hljs-string">&quot;&quot;</span>,
+  <span class="hljs-string">&quot;files&quot;</span>: {},
+  <span class="hljs-string">&quot;form&quot;</span>: {},
+  <span class="hljs-string">&quot;headers&quot;</span>: {
+    <span class="hljs-string">&quot;Accept&quot;</span>: <span class="hljs-string">&quot;*/*&quot;</span>,
+    <span class="hljs-string">&quot;Accept-Encoding&quot;</span>: <span class="hljs-string">&quot;deflate, gzip&quot;</span>,
+    <span class="hljs-string">&quot;Host&quot;</span>: <span class="hljs-string">&quot;httpbin.org&quot;</span>,
+    <span class="hljs-string">&quot;User-Agent&quot;</span>: <span class="hljs-string">&quot;curl/7.29.0&quot;</span>,
+    <span class="hljs-string">&quot;X-Amzn-Trace-Id&quot;</span>: <span class="hljs-string">&quot;…&quot;</span>
+  },
+  <span class="hljs-string">&quot;json&quot;</span>: null,
+  <span class="hljs-string">&quot;method&quot;</span>: <span class="hljs-string">&quot;GET&quot;</span>,
+  <span class="hljs-string">&quot;origin&quot;</span>: <span class="hljs-string">&quot;…&quot;</span>,
+  <span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://httpbin.org/anything&quot;</span>
+}
+</code></pre>
+<p>That’s what you would expect from <code>httpbin.org</code>, right?</p>
+<h2 id="restricting-access-swagger-security-and-x-flat-jwt">Restricting access: Swagger Security and <code>x-flat-jwt</code><a class="anchor" href="#restricting-access-swagger-security-and-x-flat-jwt"> # </a></h2>
+<p>Now, you don’t want anyone except authorized users to use this proxy. This is typically achieved with access tokens. Some tokens are JSON Web Tokens (<a href="https://www.rfc-editor.org/info/rfc7519/" class="external" target="_blank">JWT</a>), while others are opaque.</p>
+<p>Swagger has a two-part feature to describe protected access to routes: <code>securityDefinitions</code> (what sort of protection is applied …) and <code>security</code> (… to which routes), e.g.:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/httpbin/**:</span>
+    <span class="hljs-attr">security:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> []
+</code></pre>
+<p>This defines a security scheme object (named <code>JWTCookie</code>), meaning that some sort of cookie is needed to access certain routes. This is applied to the <a href="../reference/openapi/differences.html#wildcard-paths">wildcard path</a> <code>/httpbin/**</code>.</p>
+<p>This documentation feature, with some extensions, is used to make FLAT actually permit access to the route only if a valid JWT token is presented.</p>
+<p>First, we define the name of the cookie expected to accompany the API request:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>    <span class="hljs-comment"># ⬅ specify the cookie name</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>Then we specify the <a href="../reference/openapi/bearer-authentication.html#the-x-flat-jwt-property">configuration</a> for decoding the JWT token:</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>                     <span class="hljs-comment"># ⬅ our JWT configuration:</span>
+      <span class="hljs-attr">key:</span>                          <span class="hljs-comment"># ⬅ the key to decode the JWT …</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>            <span class="hljs-comment"># ⬅ … is read from the file pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>                    <span class="hljs-comment"># ⬅ the signing algorithm is RS256</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>The specified key is a public key, read from the file <code>pubkey.pem</code>, e.g.:</p>
+<pre><code>-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDGSd+sSTss2uOuVJKpumpFAaml
+t1CWLMTAZNAabF71Ur0P6u833RhAIjXDSA/QeVitzvqvCZpNtbOJVegaREqLMJqv
+FOUkFdLNRP3f9XjYFFvubo09tcjX6oGEREKDqLG2MfZ2Z8LVzuJc6SwZMgVFk/63
+rdAOci3W9u3zOSGj4QIDAQAB
+-----END PUBLIC KEY-----
+</code></pre>
+<p>That’s all. Now FLAT will only permit requests if they supply a token that bear an RS256 signature that was created with the private key that matches the given public key.</p>
+<p>Usually, you would get the key and algorithm from your identity provider (e.g. an OAuth2 authorization server). That service would be responsible for issuing JWT tokens for your users.</p>
+<p>For this tutorial we have prepared a couple of JWT tokens for you to try out different situations:</p>
+<pre><code>eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIiwiZXhwIjoxNTkwNDkxNTI4fQ.lJnUpBzMx84_5yigeHeLw4f8sbdSdu_7fWr1--t7EAp8v8K-kSmVYUGnR0Jx4o_ZE84N2M72Kn1pKssrzgTHsFi7txcZHHz_JqgnPgKqsZwjrmWDC-XVvdrSXjAsPO6wn0qy3KEMT1y6Z8YQA4ZyzA1dDsRRIUFiNrgF6_b5pC4
+</code></pre>
+<pre><code>eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIn0.bNXv28XmnFBjirPbCzBqyfpqHKo6PpoFORHsQ-80IJLi3IhBh1y0pFR0wm-2hiz_F7PkGQLTsnFiSXxCt1DZvMstbQeklZIh7O3tQGJyCAi-HRVASHKKYqZ_-eqQQhNr8Ex00qqJWD9BsWVJr7Q526Gua7ghcttmVgTYrfSNDzU
+</code></pre>
+<p>Let’s give it a try:</p>
+<pre><code class="language-sh">$ curl -i http://localhost:8080/httpbin/anything
+HTTP/1.1 403 Forbidden
+…
+Content-Type: application/json
+
+{
+  <span class="hljs-string">&quot;error&quot;</span>: {
+    <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;Security violation&quot;</span>,
+    <span class="hljs-string">&quot;status&quot;</span>: 403,
+    <span class="hljs-string">&quot;requestID&quot;</span>: <span class="hljs-string">&quot;Xsz@QAv8CEBZfWbmQhKLIQAAAII&quot;</span>,
+    <span class="hljs-string">&quot;info&quot;</span>: [
+      <span class="hljs-string">&quot;JWT Security (JWTCookie): No Cookie header sent&quot;</span>
+    ],
+    <span class="hljs-string">&quot;code&quot;</span>: 3206
+  }
+}
+</code></pre>
+<p>Ah, yes, we forgot to present a token in the <code>authtoken</code> cookie. But we see, that the protection works.</p>
+<p>Let’s try again with the first token:</p>
+<pre><code class="language-sh">$ curl -i -H <span class="hljs-string">&quot;Cookie: authtoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIiwiZXhwIjoxNTkwNDkxNTI4fQ.lJnUpBzMx84_5yigeHeLw4f8sbdSdu_7fWr1--t7EAp8v8K-kSmVYUGnR0Jx4o_ZE84N2M72Kn1pKssrzgTHsFi7txcZHHz_JqgnPgKqsZwjrmWDC-XVvdrSXjAsPO6wn0qy3KEMT1y6Z8YQA4ZyzA1dDsRRIUFiNrgF6_b5pC4&quot;</span> http://localhost:8080/httpbin/anything
+HTTP/1.1 403 Forbidden
+…
+Content-Type: application/json
+
+{
+  <span class="hljs-string">&quot;error&quot;</span>: {
+    <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;Security violation&quot;</span>,
+    <span class="hljs-string">&quot;status&quot;</span>: 403,
+    <span class="hljs-string">&quot;requestID&quot;</span>: <span class="hljs-string">&quot;Xsz80Av8CEBZfWbmQhKLIAAAAIE&quot;</span>,
+    <span class="hljs-string">&quot;info&quot;</span>: [
+      <span class="hljs-string">&quot;JWT Security (JWTCookie): Invalid JWT: Token has expired.&quot;</span>
+    ],
+    <span class="hljs-string">&quot;code&quot;</span>: 3206
+  }
+}
+</code></pre>
+<p>Hmm, expired. So this one is too old. (Access tokens typically have a restricted period of use.)</p>
+<p>OK, let’s use the other token:</p>
+<pre><code class="language-sh">$ curl -i -H <span class="hljs-string">&quot;Cookie: authtoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIn0.bNXv28XmnFBjirPbCzBqyfpqHKo6PpoFORHsQ-80IJLi3IhBh1y0pFR0wm-2hiz_F7PkGQLTsnFiSXxCt1DZvMstbQeklZIh7O3tQGJyCAi-HRVASHKKYqZ_-eqQQhNr8Ex00qqJWD9BsWVJr7Q526Gua7ghcttmVgTYrfSNDzU&quot;</span> http://localhost:8080/httpbin/anything
+HTTP/1.1 200 OK
+…
+Content-Type: application/json
+
+{
+  <span class="hljs-string">&quot;args&quot;</span>: {},
+  <span class="hljs-string">&quot;data&quot;</span>: <span class="hljs-string">&quot;&quot;</span>,
+  <span class="hljs-string">&quot;files&quot;</span>: {},
+  <span class="hljs-string">&quot;form&quot;</span>: {},
+  <span class="hljs-string">&quot;headers&quot;</span>: {
+    <span class="hljs-string">&quot;Accept&quot;</span>: <span class="hljs-string">&quot;*/*&quot;</span>,
+    <span class="hljs-string">&quot;Accept-Encoding&quot;</span>: <span class="hljs-string">&quot;deflate, gzip&quot;</span>,
+    <span class="hljs-string">&quot;Host&quot;</span>: <span class="hljs-string">&quot;httpbin.org&quot;</span>,
+    <span class="hljs-string">&quot;User-Agent&quot;</span>: <span class="hljs-string">&quot;curl/7.29.0&quot;</span>,
+    <span class="hljs-string">&quot;X-Amzn-Trace-Id&quot;</span>: <span class="hljs-string">&quot;…&quot;</span>
+  },
+  <span class="hljs-string">&quot;json&quot;</span>: null,
+  <span class="hljs-string">&quot;method&quot;</span>: <span class="hljs-string">&quot;GET&quot;</span>,
+  <span class="hljs-string">&quot;origin&quot;</span>: <span class="hljs-string">&quot;…&quot;</span>,
+  <span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://httpbin.org/anything&quot;</span>
+}
+</code></pre>
+<p>Ta-da!</p>
+<p>By the way, apart from cookies, this also works similarly with the <code>Authorization: Bearer …</code> header:</p>
+<pre><code>…
+securityDefinitions:
+  JWTBearer:
+    type: apiKey
+    in: header
+    name: Authorization             # ⬅
+    x-flat-jwt:
+      key:
+        file: pubkey.pem
+      alg: RS256
+paths:
+  /httpbin/**:
+    security:
+      - JWTBearer: []
+</code></pre>
+<p>You can try that with</p>
+<pre><code class="language-sh">$ curl -i -H <span class="hljs-string">&quot;Authorization: Bearer eybGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIn0.bNXv28XmnFBjirPbCzBqyfpqHKo6PpoFORHsQ-80IJLi3IhBh1y0pFR0wm-2hiz_F7PkGQLTsnFiSXxCt1DZvMstbQeklZIh7O3tQGJyCAi-HRVASHKKYqZ_-eqQQhNr8Ex00qqJWD9BsWVJr7Q526Gua7ghcttmVgTYrfSNDzU&quot;</span> http://localhost:8080/httpbin/anything
+</code></pre>
+<p>But there are two additional features that can be quite handy: <code>out-header</code> and <code>out-var</code>.</p>
+<h2 id="sending-jwt-claims-upstream-out-header">Sending JWT claims upstream: <code>out-header</code><a class="anchor" href="#sending-jwt-claims-upstream-out-header"> # </a></h2>
+<p>With <a href="../reference/openapi/bearer-authentication.html#forwarding-jwt-upstream"><code>out-header</code></a> you can send the whole set of claims from the JWT upstream:</p>
+<pre><code class="language-yaml:">…
+    x-flat-jwt:
+      key:
+        file: pubkey.pem
+      alg: RS256
+      out-header: JWT               # ⬅ the name of the request header with the JWT claims
+…
+</code></pre>
+<pre><code class="language-sh">$ curl -i -H <span class="hljs-string">&quot;Cookie: authtoken=eybGciOiJSUzI1NiJ9.eyJzdWIiOiJzb21lX3VzZXIiLCJpc3MiOiJzb21lX3Byb3ZpZGVyIn0.bNXv28XmnFBjirPbCzBqyfpqHKo6PpoFORHsQ-80IJLi3IhBh1y0pFR0wm-2hiz_F7PkGQLTsnFiSXxCt1DZvMstbQeklZIh7O3tQGJyCAi-HRVASHKKYqZ_-eqQQhNr8Ex00qqJWD9BsWVJr7Q526Gua7ghcttmVgTYrfSNDzU&quot;</span> http://localhost:8080/httpbin/anything
+HTTP/1.1 200 OK
+…
+Content-Type: application/json
+
+{
+…
+  <span class="hljs-string">&quot;headers&quot;</span>: {
+…
+    <span class="hljs-string">&quot;Jwt&quot;</span>: <span class="hljs-string">&quot;{\&quot;sub\&quot;:\&quot;some_user\&quot;,\&quot;iss\&quot;:\&quot;some_provider\&quot;}&quot;</span>,
+…
+  },
+…
+}
+</code></pre>
+<h2 id="accessing-jwt-claims-out-var">Accessing JWT claims: <code>out-var</code><a class="anchor" href="#accessing-jwt-claims-out-var"> # </a></h2>
+<p>With <code>out-var</code> you can specify the name of a <a href="../reference/variables.html">variable</a> where FLAT will store the JSON claims encoded in the JWT, in order to make them available for further processing. E.g.</p>
+<pre><code class="language-yaml"><span class="hljs-string">…</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">out-header:</span> <span class="hljs-string">JWT</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$the_claims</span>          <span class="hljs-comment"># ⬅</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>We can log the claims by adding a <a href="../reference/actions/log.html"><code>log</code> action</a> to an <a href="../reference/openapi/routing.html#init-flow">init flow</a>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-string">…</span>
+<span class="hljs-attr">x-flat-init:</span> <span class="hljs-string">init.xml</span>
+<span class="hljs-attr">paths:</span>
+<span class="hljs-string">…</span>
+</code></pre>
+<p>with <code>init.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">log</span>&gt;</span>
+  {
+    &quot;JWT-Claims&quot;: {{ $the_claims }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">log</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>If you look at the <a href="../administration/logging.html">FLAT logs</a> and try again with a valid token, you’ll notice:</p>
+<pre><code>{…,&quot;type&quot;:&quot;flat_access&quot;,…,&quot;JWT-Claims&quot;:{&quot;sub&quot;:&quot;some_user&quot;,&quot;iss&quot;:&quot;some_provider&quot;}}
+</code></pre>
+<p>Here you see the two claims from the JWT token.</p>
+<h2 id="all-files-together">All files together<a class="anchor" href="#all-files-together"> # </a></h2>
+<p><code>swagger.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="hljs-attr">swagger:</span> <span class="hljs-string">&quot;2.0&quot;</span>
+<span class="hljs-attr">basePath:</span> <span class="hljs-string">/</span>
+<span class="hljs-attr">securityDefinitions:</span>
+  <span class="hljs-attr">JWTCookie:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">apiKey</span>
+    <span class="hljs-attr">in:</span> <span class="hljs-string">header</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">Cookie</span>
+    <span class="hljs-attr">x-flat-cookiename:</span> <span class="hljs-string">authtoken</span>
+    <span class="hljs-attr">x-flat-jwt:</span>
+      <span class="hljs-attr">key:</span>
+        <span class="hljs-attr">file:</span> <span class="hljs-string">pubkey.pem</span>
+      <span class="hljs-attr">alg:</span> <span class="hljs-string">RS256</span>
+      <span class="hljs-attr">out-var:</span> <span class="hljs-string">$the_claims</span>
+      <span class="hljs-attr">out-header:</span> <span class="hljs-string">JWT</span>
+<span class="hljs-attr">x-flat-init:</span> <span class="hljs-string">init.xml</span>
+<span class="hljs-attr">paths:</span>
+  <span class="hljs-string">/httpbin/**:</span>
+    <span class="hljs-attr">security:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">JWTCookie:</span> []
+    <span class="hljs-attr">x-flat-proxy:</span>
+      <span class="hljs-attr">origin:</span> <span class="hljs-string">https://httpbin.org</span>
+      <span class="hljs-attr">stripEndpoint:</span> <span class="hljs-literal">true</span>
+</code></pre>
+<p><code>pubkey.pem</code>:</p>
+<pre><code>-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDGSd+sSTss2uOuVJKpumpFAaml
+t1CWLMTAZNAabF71Ur0P6u833RhAIjXDSA/QeVitzvqvCZpNtbOJVegaREqLMJqv
+FOUkFdLNRP3f9XjYFFvubo09tcjX6oGEREKDqLG2MfZ2Z8LVzuJc6SwZMgVFk/63
+rdAOci3W9u3zOSGj4QIDAQAB
+-----END PUBLIC KEY-----
+</code></pre>
+<p><code>init.xml</code>:</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">flow</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">log</span>&gt;</span>
+  {
+    &quot;JWT-Claims&quot;: {{ $the_claims }}
+  }
+  <span class="hljs-tag">&lt;/<span class="hljs-name">log</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">flow</span>&gt;</span>
+</code></pre>
+<p>If you want to know, how to perform some additional checks on the JWT, visit the cookbook <a href="checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a>.</p>
+<h2 id="see-also">See also<a class="anchor" href="#see-also"> # </a></h2>
+<ul>
+<li><a href="../reference/openapi/security.html">FLAT Security</a> (reference)</li>
+<li><a href="../reference/openapi/routing.html">Routing: Init Flow and FLAT Proxies</a> (reference)</li>
+<li><a href="jwt.html">Encoding and Decoding JWT</a> (cookbook)</li>
+</ul>
+
+        <nav class="main"><ul><li><a href="../README.html">Overview</a></li>
+<li><details><summary>Administration</summary><ul><li><a href="../administration/docker.html">Docker</a></li>
+<li><a href="../administration/configuration.html">Configuration</a></li>
+<li><a href="../administration/logging.html">Logging</a></li>
+<li><a href="../administration/security.html">Security</a></li>
+</ul>
+</li>
+<li><details><summary>Development</summary><ul><li><details><summary>Reference</summary><ul><li><details><summary><a href="../reference/actions/README.html">Actions</a></summary><ul><li><a href="../reference/actions/auth.html">auth</a></li>
+<li><a href="../reference/actions/copy.html">copy</a></li>
+<li><a href="../reference/actions/debug.html">debug</a></li>
+<li><a href="../reference/actions/dump.html">dump</a></li>
+<li><a href="../reference/actions/echo.html">echo</a></li>
+<li><a href="../reference/actions/error.html">error</a></li>
+<li><a href="../reference/actions/eval.html">eval</a></li>
+<li><a href="../reference/actions/log.html">log</a></li>
+<li><a href="../reference/actions/nameshave.html">nameshave</a></li>
+<li><a href="../reference/actions/pass-body.html">pass-body</a></li>
+<li><a href="../reference/actions/proxy-request.html">proxy-request</a></li>
+<li><a href="../reference/actions/regex.html">regex</a></li>
+<li><a href="../reference/actions/request.html">request</a></li>
+<li><a href="../reference/actions/requests.html">requests</a></li>
+<li><a href="../reference/actions/serve.html">serve</a></li>
+<li><a href="../reference/actions/set-config.html">set-config</a></li>
+<li><a href="../reference/actions/set-response-headers.html">set-response-headers</a></li>
+<li><a href="../reference/actions/set-status.html">set-status</a></li>
+<li><a href="../reference/actions/sub-flow.html">sub-flow</a></li>
+<li><a href="../reference/actions/template.html">template</a></li>
+<li><a href="../reference/actions/xslt.html">xslt</a></li>
+</ul>
+</li>
+<li><a href="../reference/configuration.html">Configuration</a></li>
+<li><a href="../reference/debugging.html">Debugging</a></li>
+<li><a href="../reference/flow.html">Flow</a></li>
+<li><details><summary><a href="../reference/functions/README.html">Functions</a></summary><ul><li><a href="../reference/functions/apply-codecs.html">apply-codecs()</a></li>
+<li><a href="../reference/functions/array.html">array()</a></li>
+<li><a href="../reference/functions/array-reverse.html">array-reverse()</a></li>
+<li><a href="../reference/functions/base64-decode.html">base64-decode()</a></li>
+<li><a href="../reference/functions/base64-encode.html">base64-encode()</a></li>
+<li><a href="../reference/functions/body.html">body()</a></li>
+<li><a href="../reference/functions/calc-signature.html">calc-signature()</a></li>
+<li><a href="../reference/functions/capitalize-first.html">capitalize-first()</a></li>
+<li><a href="../reference/functions/content.html">content()</a></li>
+<li><a href="../reference/functions/datetime-format.html">datetime-format()</a></li>
+<li><a href="../reference/functions/datetime-parse.html">datetime-parse()</a></li>
+<li><a href="../reference/functions/datetime-parse-iso.html">datetime-parse-iso()</a></li>
+<li><a href="../reference/functions/decrypt-xml.html">decrypt-xml()</a></li>
+<li><a href="../reference/functions/decrypt.html">decrypt()</a></li>
+<li><a href="../reference/functions/encrypt.html">encrypt()</a></li>
+<li><a href="../reference/functions/ends-with.html">ends-with()</a></li>
+<li><a href="../reference/functions/file-exists.html">file-exists()</a></li>
+<li><a href="../reference/functions/fit-document.html">fit-document()</a></li>
+<li><a href="../reference/functions/fit-log.html">fit-log()</a></li>
+<li><a href="../reference/functions/fit-serialize.html">fit-serialize()</a></li>
+<li><a href="../reference/functions/get-log.html">get-log()</a></li>
+<li><a href="../reference/functions/has-class.html">has-class()</a></li>
+<li><a href="../reference/functions/html-parse.html">html-parse()</a></li>
+<li><a href="../reference/functions/join.html">join()</a></li>
+<li><a href="../reference/functions/json-doc.html">json-doc()</a></li>
+<li><a href="../reference/functions/json-parse.html">json-parse()</a></li>
+<li><a href="../reference/functions/json-stringify.html">json-stringify()</a></li>
+<li><a href="../reference/functions/json-to-csv.html">json-to-csv()</a></li>
+<li><a href="../reference/functions/json-to-xml.html">json-to-xml()</a></li>
+<li><a href="../reference/functions/jwt-decode.html">jwt-decode()</a></li>
+<li><a href="../reference/functions/jwt-encode.html">jwt-encode()</a></li>
+<li><a href="../reference/functions/ldap-lookup.html">ldap-lookup()</a></li>
+<li><a href="../reference/functions/ldap-query.html">ldap-query()</a></li>
+<li><a href="../reference/functions/lookup.html">lookup()</a></li>
+<li><a href="../reference/functions/matches.html">matches()</a></li>
+<li><a href="../reference/functions/md5.html">md5()</a></li>
+<li><a href="../reference/functions/replace.html">replace()</a></li>
+<li><a href="../reference/functions/sort.html">sort()</a></li>
+<li><a href="../reference/functions/split.html">split()</a></li>
+<li><a href="../reference/functions/tolower.html">tolower()</a></li>
+<li><a href="../reference/functions/toupper.html">toupper()</a></li>
+<li><a href="../reference/functions/trim.html">trim()</a></li>
+<li><a href="../reference/functions/unixtime.html">unixtime()</a></li>
+<li><a href="../reference/functions/urldecode.html">urldecode(), url-decode()</a></li>
+<li><a href="../reference/functions/urlencode.html">urlencode(), url-encode()</a></li>
+<li><a href="../reference/functions/uuid.html">uuid3() and uuid4()</a></li>
+<li><a href="../reference/functions/verify-signature.html">verify-signature()</a></li>
+<li><a href="../reference/functions/verify-xmldsig.html">verify-xmldsig()</a></li>
+<li><a href="../reference/functions/xml-parse.html">xml-parse()</a></li>
+<li><a href="../reference/functions/xml-to-json.html">xml-to-json()</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/templating/README.html">JSON Templates</a></summary><ul><li><a href="../reference/templating/oxn.html">OXN</a></li>
+<li><a href="../reference/templating/comment.html">Comment {{// <comment>}}</a></li>
+<li><a href="../reference/templating/placeholder.html">Placeholder {{ <expression> }}</a></li>
+<li><a href="../reference/templating/dot.html">Dot {{.}}</a></li>
+<li><a href="../reference/templating/comma.html">Comma {{,}}</a></li>
+<li><a href="../reference/templating/pair-producer.html">Pair Producer {{: <expression> }}</a></li>
+<li><a href="../reference/templating/variable.html">Variable Definition {{$<name> := <expression> }}</a></li>
+<li><a href="../reference/templating/if.html">Conditional {{if <condition>}} … {{elseif <condition> }} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/loop.html">Loop {{loop <array>}} … {{end}}</a></li>
+<li><a href="../reference/templating/with.html">Context Switch {{with <expression>}} … {{else}} … {{end}}</a></li>
+<li><a href="../reference/templating/null-coalescing-operator.html">Null Coalescing Operator ??</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../reference/openapi/README.html">OpenAPI Integration</a></summary><ul><li><a href="../reference/openapi/routing.html">Routing</a></li>
+<li><a href="../reference/openapi/validation.html">Validation</a></li>
+<li><a href="../reference/openapi/security.html">Security Check</a></li>
+<li><a href="../reference/openapi/mocking.html">Mocking</a></li>
+<li><a href="../reference/openapi/cors.html">CORS</a></li>
+<li><a href="../reference/openapi/upstream.html">Upstream APIs</a></li>
+<li><a href="../reference/openapi/differences.html">Differences</a></li>
+</ul>
+</li>
+<li><a href="../reference/testing/README.html">Testing</a></li>
+<li><a href="../reference/variables.html">Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><details><summary>Cookbook</summary><ul><li><a href="../cookbook/x-flat-jwt.html">Protecting Access using JWT Tokens</a></li>
+<li><a href="../cookbook/checking-jwt-tokens.html">Performing Additional Checks on JWT Access Tokens</a></li>
+<li><a href="../cookbook/proxy-requests.html">Proxying Requests to Upstream APIs (cookbook/Swagger)</a></li>
+<li><a href="../cookbook/test-templates.html">Testing Templates</a></li>
+<li><a href="../cookbook/test-api-request.html">Testing API Requests</a></li>
+<li><a href="../cookbook/test-backend.html">Testing with Backend Requests</a></li>
+<li><a href="../cookbook/file-serving.html">File Serving</a></li>
+<li><a href="../cookbook/error-flow.html">Error Handling</a></li>
+<li><a href="../cookbook/init-flow.html">Extracting Common Initialization Flow Tasks</a></li>
+<li><a href="../cookbook/envvars.html">Using Environment Variables</a></li>
+<li><a href="../cookbook/custom-logging.html">Logging Custom Fields</a></li>
+<li><a href="../cookbook/forward-request-upstream.html">Forwarding a Request to an Upstream API (cookbook/Flow)</a></li>
+<li><a href="../cookbook/pass-header-field-upstream.html">How can I pass an arbitrary header field to an upstream system?</a></li>
+<li><a href="../cookbook/pass-header-field-downstream.html">How can I pass response headers to the client?</a></li>
+<li><a href="../cookbook/request-timeout.html">How can I increase the request timeout to deal with a slow upstream system?</a></li>
+<li><a href="../cookbook/upstream-post-requests.html">Sending POST requests</a></li>
+<li><a href="../cookbook/jwt.html">Signing JWT</a></li>
+<li><a href="../cookbook/see-client-request.html">How can I inspect the client request?</a></li>
+<li><a href="../cookbook/swagger-docs.html">Auto Docs with Swagger UI</a></li>
+<li><a href="../cookbook/builtin-mocking.html">Using the Built-in Mocking</a></li>
+</ul>
+</li>
+<li><details><summary><a href="../tutorial/README.html">Tutorial</a></summary><ul><li><a href="../tutorial/README.html#tools">Tools</a></li>
+<li><a href="../tutorial/README.html#getting-started">Getting Started</a></li>
+<li><a href="../tutorial/README.html#openapi">OpenAPI</a></li>
+<li><a href="../tutorial/README.html#in-the-flow">In the Flow</a></li>
+<li><a href="../tutorial/README.html#working-with-files">Working with Files</a></li>
+<li><a href="../tutorial/README.html#request-validation">Request Validation</a></li>
+<li><a href="../tutorial/README.html#working-with-templates">Working with Templates</a></li>
+<li><a href="../tutorial/README.html#upstream-requests">Upstream Requests</a></li>
+<li><a href="../tutorial/README.html#mock-mock">Mock, mock!</a></li>
+<li><a href="../tutorial/README.html#response-validation">Response Validation</a></li>
+<li><a href="../tutorial/README.html#request-configuration">Request Configuration</a></li>
+<li><a href="../tutorial/README.html#upstream-validation">Upstream Validation</a></li>
+<li><a href="../tutorial/README.html#improving-the-configuration">Improving the Configuration</a></li>
+<li><a href="../tutorial/README.html#when-things-go-south">When Things Go South</a></li>
+<li><a href="../tutorial/README.html#configuration-files">Configuration Files</a></li>
+</ul>
+</li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+</nav>
+        <nav class="toc">
+            <input id="search" type="search" autocomplete placeholder="🔎">
+            <ul id="search-results"></ul>
+            <ul><li><a href="#restricting-access-swagger-security-and-x-flat-jwt">Restricting access: Swagger Security and x-flat-jwt</a></li><li><a href="#sending-jwt-claims-upstream-out-header">Sending JWT claims upstream: out-header</a></li><li><a href="#accessing-jwt-claims-out-var">Accessing JWT claims: out-var</a></li><li><a href="#all-files-together">All files together</a></li><li><a href="#see-also">See also</a></li></ul>
+        </nav>
+        <footer></footer>
+        <script src="../assets/minisearch.js"></script>
+        <script src="../assets/search-index.js"></script>
+        <script src="../assets/script.js"></script>
+        <script>
+        const baseURI = "../";
+        selectNavElement("../cookbook/x-flat-jwt.html")
+        </script>
+        </body>
+        </html>
