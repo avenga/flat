@@ -264,7 +264,7 @@ nav.toc {
   right: 0;
   width: 220px;
   height: 100vh;
-  padding: 2rem 1rem;
+  padding: 2rem 1rem 4rem;
   overflow-y: auto;
   box-sizing: border-box;
 
